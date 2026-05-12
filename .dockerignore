@@ -1,0 +1,10 @@
+target/
+.idea/
+*.iml
+.git/
+.DS_Store
+logs/
+*.log
+docker/data/
+.env
+.env.local

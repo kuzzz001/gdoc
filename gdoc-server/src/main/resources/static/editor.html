@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>编辑器 - 吉智文档 Gdoc</title>
+    <script src="/js/vue.global.prod.js"></script>
+    <script src="/js/sockjs.min.js"></script>
+    <script src="/js/stomp.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif; background: linear-gradient(135deg, #f0f6ff 0%, #e8f0fe 100%); min-height: 100vh; }
+
+        .toolbar {
+            height: 56px;
+            background: linear-gradient(135deg, #1a73e8 0%, #4285f4 100%);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            gap: 16px;
+            box-shadow: 0 4px 12px rgba(26,115,232,0.25);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .toolbar .logo {
+            font-weight: 700;
+            color: #fff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 16px;
+            white-space: nowrap;
+            transition: opacity 0.2s;
+        }
+        .toolbar .logo:hover { opacity: 0.9; }
+        .toolbar .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            backdrop-filter: blur(4px);
+        }
+        .toolbar input.title {
+            border: none;
+            outline: none;
+            font-size: 16px;
+            color: #fff;
+            flex: 1;
+            background: transparent;
+            padding: 8px 12px;
+            font-weight: 500;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+        .toolbar input.title::placeholder { color: rgba(255,255,255,0.6); }
+        .toolbar input.title:focus { background: rgba(255,255,255,0.1); }
+        .toolbar input.title:disabled { color: rgba(255,255,255,0.5); }
+        .toolbar .actions { display: flex; gap: 8px; }
+        .toolbar button {
+            padding: 7px 16px;
+            border: 1.5px solid rgba(255,255,255,0.3);
+            border-radius: 10px;
+            background: rgba(255,255,255,0.1);
+            cursor: pointer;
+            font-size: 13px;
+            color: #fff;
+            transition: all 0.2s;
+            white-space: nowrap;
+            font-weight: 500;
+            backdrop-filter: blur(4px);
+        }
+        .toolbar button:hover { background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.5); transform: translateY(-1px); }
+
+        .members-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+        .member-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            color: #fff;
+            font-weight: 500;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+            backdrop-filter: blur(4px);
+        }
+        .member-badge .dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.8); }
+        .member-badge .mini-avatar {
+            width: 18px; height: 18px; border-radius: 50%; overflow: hidden;
+            border: 1.5px solid rgba(255,255,255,0.6);
+        }
+        .member-badge .mini-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .toolbar-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            overflow: hidden;
+            border: 2px solid rgba(255,255,255,0.3);
+            margin-left: 12px;
+        }
+        .toolbar-avatar:hover { background: rgba(255,255,255,0.35); transform: scale(1.05); }
+        .toolbar-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+        .editor-wrapper { display: flex; height: calc(100vh - 56px - 32px); }
+        .editor-area {
+            flex: 1;
+            padding: 28px;
+            display: flex;
+            justify-content: center;
+            overflow-y: auto;
+            background: linear-gradient(135deg, #f0f6ff 0%, #e8f0fe 100%);
+        }
+        #editor {
+            width: 100%;
+            max-width: 850px;
+            min-height: 600px;
+            border: none;
+            outline: none;
+            resize: none;
+            font-size: 16px;
+            line-height: 1.9;
+            color: #202124;
+            background: #fff;
+            padding: 56px 64px;
+            box-shadow: 
+                0 2px 8px rgba(0,0,0,0.06),
+                0 8px 24px rgba(0,0,0,0.08);
+            border-radius: 12px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            transition: box-shadow 0.3s;
+        }
+        #editor:focus {
+            box-shadow: 
+                0 4px 12px rgba(0,0,0,0.08),
+                0 12px 32px rgba(0,0,0,0.1);
+        }
+        #editor:disabled { background: #fafbfc; color: #5f6368; }
+        #editor::placeholder { color: #9aa0a6; }
+
+        .status-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 32px;
+            background: linear-gradient(135deg, #fff 0%, #f8faff 100%);
+            border-top: 1px solid #e8eaed;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            font-size: 12px;
+            color: #5f6368;
+            gap: 20px;
+            box-shadow: 0 -2px 6px rgba(0,0,0,0.04);
+        }
+        .status-bar .saved { color: #137333; font-weight: 600; }
+
+        .info-panel {
+            width: 0;
+            overflow: hidden;
+            background: linear-gradient(135deg, #fff 0%, #f8faff 100%);
+            border-left: 1px solid #e8eaed;
+            transition: width 0.3s ease;
+            font-size: 13px;
+            box-shadow: -4px 0 12px rgba(0,0,0,0.04);
+        }
+        .info-panel.open { width: 320px; padding: 24px; overflow-y: auto; }
+        .info-panel h4 { margin-bottom: 16px; color: #202124; font-size: 15px; font-weight: 700; letter-spacing: 0.3px; }
+        .info-panel .item { margin-bottom: 12px; color: #5f6368; }
+        .info-panel .item strong { color: #202124; display: inline-block; width: 65px; font-weight: 600; }
+        .info-panel input { width: 100%; padding: 9px 12px; border: 1.5px solid #dadce0; border-radius: 8px; font-size: 13px; outline: none; transition: all 0.2s; }
+        .info-panel input:focus { border-color: #1a73e8; box-shadow: 0 0 0 4px rgba(26,115,232,0.08); }
+        .btn-panel {
+            width: 100%;
+            padding: 9px;
+            border: 1.5px solid #dadce0;
+            border-radius: 10px;
+            background: #fff;
+            cursor: pointer;
+            font-size: 13px;
+            color: #1a73e8;
+            transition: all 0.2s;
+            margin-top: 8px;
+            font-weight: 500;
+        }
+        .btn-panel:hover { background: #e8f0fe; border-color: #1a73e8; transform: translateY(-1px); }
+
+        .member-cursor {
+            position: absolute;
+            height: 22px;
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 6px 6px 6px 0;
+            color: #fff;
+            pointer-events: none;
+            z-index: 10;
+            white-space: nowrap;
+            transform: translateY(-100%);
+            font-weight: 500;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+        .editor-container { position: relative; width: 100%; max-width: 850px; }
+
+        .share-banner {
+            background: linear-gradient(135deg, #fef7e0 0%, #feefc3 100%);
+            padding: 12px 20px;
+            text-align: center;
+            font-size: 13px;
+            color: #b06000;
+            font-weight: 500;
+            border-bottom: 1px solid #f5d88e;
+        }
+        .share-banner a { color: #1a73e8; text-decoration: none; font-weight: 600; }
+        .share-banner a:hover { text-decoration: underline; }
+
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.45);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 1000;
+            animation: fadeIn .2s;
+            backdrop-filter: blur(3px);
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        .modal {
+            background: #fff;
+            border-radius: 18px;
+            width: 560px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 16px 48px rgba(0,0,0,0.2);
+            animation: slideUp 0.3s ease;
+            overflow: hidden;
+        }
+        .modal-header {
+            padding: 20px 28px;
+            border-bottom: 1px solid #e8eaed;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: linear-gradient(135deg, #f8faff 0%, #f0f4f8 100%);
+        }
+        .modal-header h3 { font-size: 18px; color: #202124; font-weight: 700; }
+        .modal-close { background: none; border: none; font-size: 24px; cursor: pointer; color: #5f6368; padding: 6px; border-radius: 8px; transition: all 0.2s; }
+        .modal-close:hover { background: #e8eaed; color: #202124; }
+        .modal-tabs { display: flex; border-bottom: 1px solid #e8eaed; padding: 0 28px; background: #fafbfc; }
+        .modal-tab {
+            padding: 14px 20px;
+            border: none;
+            background: none;
+            font-size: 14px;
+            color: #5f6368;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+        .modal-tab:hover { color: #1a73e8; }
+        .modal-tab.active { color: #1a73e8; border-bottom-color: #1a73e8; font-weight: 600; }
+        .modal-body { padding: 28px; overflow-y: auto; flex: 1; }
+        .modal-body h4 { font-size: 15px; color: #202124; font-weight: 600; margin-bottom: 16px; letter-spacing: 0.3px; }
+        .form-group { margin-bottom: 18px; }
+        .form-group label { display: block; font-size: 13px; color: #5f6368; margin-bottom: 8px; font-weight: 600; letter-spacing: 0.3px; }
+        .form-group select, .form-group input {
+            width: 100%;
+            padding: 11px 14px;
+            border: 1.5px solid #dadce0;
+            border-radius: 10px;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.2s;
+            background: #fafbfc;
+            color: #3c4043;
+        }
+        .form-group select:focus, .form-group input:focus { border-color: #1a73e8; box-shadow: 0 0 0 4px rgba(26,115,232,0.08); background: #fff; }
+        .form-row { display: flex; gap: 14px; }
+        .form-row .form-group { flex: 1; }
+        .btn-submit {
+            width: 100%;
+            padding: 11px;
+            background: linear-gradient(135deg, #1a73e8 0%, #4285f4 100%);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s;
+            box-shadow: 0 4px 12px rgba(26,115,232,0.25);
+            letter-spacing: 0.5px;
+        }
+        .btn-submit:hover { box-shadow: 0 6px 16px rgba(26,115,232,0.35); transform: translateY(-2px); }
+        .btn-submit:active { transform: translateY(0); box-shadow: 0 2px 8px rgba(26,115,232,0.25); }
+
+        .share-list { margin-top: 20px; }
+        .share-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px;
+            border: 1.5px solid #e8eaed;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            font-size: 13px;
+            background: #fafbfc;
+            transition: all 0.2s;
+        }
+        .share-item:hover { border-color: #aecbfa; background: #f8faff; transform: translateX(2px); }
+        .share-item .link { color: #1a73e8; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-right: 12px; font-weight: 500; }
+        .share-item .meta { color: #5f6368; margin-right: 12px; white-space: nowrap; font-size: 12px; }
+        .btn-copy { padding: 5px 14px; border: 1.5px solid #dadce0; border-radius: 8px; background: #fff; cursor: pointer; font-size: 12px; color: #1a73e8; transition: all 0.2s; font-weight: 500; }
+        .btn-copy:hover { background: #e8f0fe; border-color: #1a73e8; transform: translateY(-1px); }
+        .btn-revoke { padding: 5px 14px; border: 1.5px solid #f5c6cb; border-radius: 8px; background: #fff; color: #d93025; cursor: pointer; font-size: 12px; transition: all 0.2s; font-weight: 500; }
+        .btn-revoke:hover { background: #fce8e6; border-color: #d93025; transform: translateY(-1px); }
+
+        .collaborator-list { margin-top: 16px; }
+        .collab-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px;
+            border: 1.5px solid #e8eaed;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            font-size: 14px;
+            background: #fafbfc;
+            transition: all 0.2s;
+        }
+        .collab-item:hover { border-color: #aecbfa; background: #f8faff; transform: translateX(2px); }
+        .collab-item .name { flex: 1; color: #202124; font-weight: 500; }
+        .collab-item .role-select { padding: 6px 12px; border: 1.5px solid #dadce0; border-radius: 8px; font-size: 12px; margin-right: 12px; outline: none; cursor: pointer; }
+        .btn-remove { padding: 5px 14px; border: 1.5px solid #f5c6cb; border-radius: 8px; background: #fff; color: #d93025; cursor: pointer; font-size: 12px; transition: all 0.2s; font-weight: 500; }
+        .btn-remove:hover { background: #fce8e6; border-color: #d93025; transform: translateY(-1px); }
+
+        .msg { font-size: 13px; color: #5f6368; padding: 8px 0; }
+        .msg-error { color: #d93025; }
+    </style>
+</head>
+<body>
+<div id="app">
+    <div class="share-banner" v-if="isShareMode">
+        你正通过分享链接查看此文档 — 权限：{{ permLabel(doc.permission) }}
+        <span v-if="!isLoggedIn" style="margin-left:8px;">
+            <a href="/login.html">登录</a>后可编辑
+        </span>
+    </div>
+    <div class="toolbar">
+        <div class="logo" @click="backToList"><span class="logo-icon">📄</span> 吉智文档</div>
+        <input class="title" v-model="doc.title" @change="saveTitle" placeholder="无标题文档" :disabled="!canEdit">
+        <div class="actions">
+            <button v-if="currentUser" class="toolbar-avatar" @click="goToIndex">
+                <img v-if="currentUser.avatarUrl" :src="currentUser.avatarUrl" alt="avatar">
+                <span v-else>{{ (currentUser.nickname || currentUser.username || 'U').charAt(0).toUpperCase() }}</span>
+            </button>
+            <button @click="panelOpen = !panelOpen">信息</button>
+            <button v-if="isOwner" @click="openShareModal">分享</button>
+            <button @click="backToList">返回</button>
+        </div>
+        <div class="members-bar">
+            <div class="member-badge" v-for="m in activeMembers" :key="m.userId" :style="{backgroundColor: m.color}">
+                <span class="mini-avatar" v-if="m.avatarUrl"><img :src="m.avatarUrl" alt=""></span>
+                {{ m.username }} <span class="dot"></span>
+            </div>
+        </div>
+    </div>
+    <div class="editor-wrapper">
+        <div class="editor-area">
+            <div class="editor-container">
+                <textarea id="editor"
+                      v-model="content"
+                      @input="onContentChange"
+                      @click="updateCursor"
+                      @keyup="updateCursor"
+                      placeholder="开始输入内容..."
+                      :disabled="!canEdit"></textarea>
+                <div class="member-cursor" v-for="cursor in otherCursors" :key="cursor.userId"
+                     :style="{top: cursor.top + 'px', left: cursor.left + 'px', backgroundColor: cursor.color}">
+                    {{ cursor.username }}
+                </div>
+            </div>
+        </div>
+        <div class="info-panel" :class="{open: panelOpen}">
+            <h4>文档信息</h4>
+            <div class="item"><strong>拥有者</strong> {{ doc.ownerName }}</div>
+            <div class="item"><strong>版本</strong> v{{ doc.version }}</div>
+            <div class="item"><strong>创建</strong> {{ formatTime(doc.createdAt) }}</div>
+            <div class="item"><strong>更新</strong> {{ formatTime(doc.updatedAt) }}</div>
+            <div class="item"><strong>权限</strong> {{ permLabel(doc.permission) }}</div>
+
+            <template v-if="isOwner">
+                <h4 style="margin-top:20px;">协作者 ({{ collaborators.length }})</h4>
+                <div class="item" v-for="c in collaborators" :key="c.id" style="display:flex;align-items:center;justify-content:space-between;">
+                    <span>{{ c.nickname || c.username }}</span>
+                    <span style="font-size:11px;color:#5f6368;">{{ c.role === 'editor' ? '可编辑' : '只读' }}</span>
+                </div>
+                <button class="btn-panel" @click="openShareModal">管理分享与协作者</button>
+            </template>
+            <template v-else-if="collaborators.length">
+                <h4 style="margin-top:20px;">协作者 ({{ collaborators.length }})</h4>
+                <div class="item" v-for="c in collaborators" :key="c.id">
+                    <span>{{ c.nickname || c.username }}</span>
+                    <span style="font-size:11px;color:#5f6368;margin-left:8px;">{{ c.role === 'editor' ? '可编辑' : '只读' }}</span>
+                </div>
+            </template>
+        </div>
+    </div>
+    <div class="status-bar">
+        <span>文档ID: {{ doc.id }}</span>
+        <span :class="{saved: saved}">{{ savedStatus }}</span>
+    </div>
+
+    <div class="modal-overlay" v-if="shareModal.visible" @click.self="closeShareModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>{{ doc.title }}</h3>
+                <button class="modal-close" @click="closeShareModal">&times;</button>
+            </div>
+            <div class="modal-tabs">
+                <button class="modal-tab" :class="{active: shareModal.tab==='share'}" @click="shareModal.tab='share'">分享链接</button>
+                <button class="modal-tab" :class="{active: shareModal.tab==='collab'}" @click="shareModal.tab='collab';loadCollaborators()">协作者</button>
+            </div>
+            <div class="modal-body">
+                <template v-if="shareModal.tab==='share'">
+                    <h4>创建新分享链接</h4>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>权限</label>
+                            <select v-model="shareModal.newPerm">
+                                <option value="view">只读</option>
+                                <option value="editor">可编辑</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>有效期（小时，留空为永久）</label>
+                            <input type="number" v-model="shareModal.expireHours" placeholder="例如: 24" min="1">
+                        </div>
+                    </div>
+                    <button class="btn-submit" @click="createShare">生成分享链接</button>
+                    <div class="msg" :class="{'msg-error': shareModal.msgError}">{{ shareModal.msg }}</div>
+
+                    <h4 v-if="shareModal.shares.length" style="margin-top: 20px;">已有分享链接</h4>
+                    <div class="share-list">
+                        <div class="share-item" v-for="s in shareModal.shares" :key="s.id">
+                            <span class="link">{{ shareUrl(s.token) }}</span>
+                            <span class="meta">{{ s.permission === 'editor' ? '可编辑' : '只读' }}</span>
+                            <span class="meta" v-if="s.expireAt">到期 {{ formatTime(s.expireAt) }}</span>
+                            <button class="btn-copy" @click="copyLink(shareUrl(s.token))">复制</button>
+                            <button class="btn-revoke" @click="revokeShare(s.token)">撤销</button>
+                        </div>
+                    </div>
+                </template>
+
+                <template v-if="shareModal.tab==='collab'">
+                    <h4>添加协作者</h4>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>用户名</label>
+                            <input type="text" v-model="shareModal.newCollabUser" placeholder="输入用户名">
+                        </div>
+                        <div class="form-group">
+                            <label>角色</label>
+                            <select v-model="shareModal.newCollabRole">
+                                <option value="editor">可编辑</option>
+                                <option value="viewer">只读</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn-submit" @click="addCollaborator">添加协作者</button>
+                    <div class="msg" :class="{'msg-error': shareModal.collabMsgError}">{{ shareModal.collabMsg }}</div>
+
+                    <h4 v-if="shareModal.collaborators.length" style="margin-top: 20px;">协作者列表</h4>
+                    <div class="collaborator-list">
+                        <div class="collab-item" v-for="c in shareModal.collaborators" :key="c.id">
+                            <span class="name">{{ c.nickname || c.username }}</span>
+                            <select class="role-select" :value="c.role" @change="updateCollabRole(c, $event.target.value)">
+                                <option value="editor">可编辑</option>
+                                <option value="viewer">只读</option>
+                            </select>
+                            <button class="btn-remove" @click="removeCollaborator(c)">移除</button>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+const { createApp } = Vue;
+createApp({
+    data() {
+        return {
+            doc: { id: 0, title: '', content: '', ownerName: '', version: 1, permission: '', createdAt: '', updatedAt: '' },
+            content: '',
+            saved: true,
+            saveTimer: null,
+            panelOpen: false,
+            isShareMode: false,
+            shareToken: null,
+            collaborators: [],
+            shareModal: {
+                visible: false,
+                tab: 'share',
+                newPerm: 'view',
+                expireHours: null,
+                shares: [],
+                msg: '',
+                msgError: false,
+                newCollabUser: '',
+                newCollabRole: 'editor',
+                collaborators: [],
+                collabMsg: '',
+                collabMsgError: false
+            },
+            ws: null,
+            stompClient: null,
+            connected: false,
+            members: [],
+            version: 0,
+            pendingOps: [],
+            sentOps: [],
+            acknowledged: true,
+            localVersion: 0,
+            otherCursors: [],
+            cursorUpdateTimer: null,
+            CURSOR_COLORS: ['#e53e3e', '#3182ce', '#38a169', '#d69e2e', '#805ad5', '#dd6b20', '#319795', '#d53f8c'],
+            userColorMap: {},
+            currentUser: null
+        };
+    },
+    computed: {
+        activeMembers() {
+            return this.members.filter(m => m.userId !== this.getCurrentUserId());
+        },
+        isLoggedIn() {
+            return !!localStorage.getItem('token');
+        },
+        isOwner() {
+            return this.doc.permission === 'owner';
+        },
+        canEdit() {
+            return this.doc.permission === 'owner' || this.doc.permission === 'editor';
+        },
+        savedStatus() {
+            return this.saved ? '已保存' : '修改中...';
+        }
+    },
+    created() {
+        this.currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+        const params = new URLSearchParams(location.search);
+        const shareToken = params.get('share');
+        const docId = params.get('id');
+
+        if (shareToken) {
+            this.isShareMode = true;
+            this.shareToken = shareToken;
+            this.loadDocByShare(shareToken);
+        } else if (docId) {
+            const token = localStorage.getItem('token');
+            if (!token) { location.href = '/login.html'; return; }
+            this.loadDoc(docId);
+            this.connectWebSocket(docId);
+        } else {
+            location.href = '/index.html';
+        }
+    },
+    methods: {
+        async api(url, options = {}) {
+            const headers = { ...(options.headers || {}) };
+            const token = localStorage.getItem('token');
+            if (token) {
+                headers['Authorization'] = 'Bearer ' + token;
+            }
+            if (options.body && typeof options.body === 'object') {
+                headers['Content-Type'] = 'application/json';
+                options.body = JSON.stringify(options.body);
+            }
+            const res = await fetch(url, { ...options, headers });
+            if (res.status === 401) { location.href = '/login.html'; return null; }
+            const json = await res.json();
+            return json;
+        },
+        async loadDoc(id) {
+            const json = await this.api('/api/docs/' + id);
+            if (json && json.code === 200) {
+                this.doc = json.data;
+                this.content = json.data.content || '';
+                this.loadCollaboratorsForPanel();
+            }
+        },
+        async loadDocByShare(shareToken) {
+            const json = await this.api('/api/docs/share/' + shareToken);
+            if (json && json.code === 200) {
+                this.doc = json.data;
+                this.content = json.data.content || '';
+                this.doc.permission = json.data.permission || 'viewer';
+            } else {
+                alert((json && json.message) || '分享链接无效或已过期');
+                location.href = '/index.html';
+            }
+        },
+        async loadCollaboratorsForPanel() {
+            const json = await this.api(`/api/docs/${this.doc.id}/collaborators`);
+            if (json && json.code === 200) {
+                this.collaborators = json.data || [];
+            }
+        },
+        onContentChange() {
+            if (!this.canEdit) return;
+            this.saved = false;
+            clearTimeout(this.saveTimer);
+
+            const newContent = this.content;
+            const oldContent = this.lastKnownContent || newContent;
+            this.lastKnownContent = newContent;
+
+            const ops = this.computeOps(oldContent, newContent);
+            this.pendingOps.push(...ops);
+
+            if (this.acknowledged && this.pendingOps.length > 0) {
+                this.sendPendingOps();
+            }
+
+            this.saveTimer = setTimeout(() => this.saveContent(), 1000);
+        },
+        async saveContent() {
+            this.saved = true;
+        },
+        async saveTitle() {
+            if (!this.canEdit) return;
+            await this.api('/api/docs/' + this.doc.id, {
+                method: 'PUT',
+                body: { title: this.doc.title }
+            });
+        },
+        openShareModal() {
+            this.shareModal = {
+                visible: true,
+                tab: 'share',
+                newPerm: 'view',
+                expireHours: null,
+                shares: [],
+                msg: '',
+                msgError: false,
+                newCollabUser: '',
+                newCollabRole: 'editor',
+                collaborators: [],
+                collabMsg: '',
+                collabMsgError: false
+            };
+            this.loadShares();
+        },
+        closeShareModal() {
+            this.shareModal.visible = false;
+        },
+        async loadShares() {
+            const json = await this.api(`/api/docs/${this.doc.id}/shares`);
+            if (json && json.code === 200) {
+                this.shareModal.shares = json.data || [];
+            }
+        },
+        async loadCollaborators() {
+            const json = await this.api(`/api/docs/${this.doc.id}/collaborators`);
+            if (json && json.code === 200) {
+                this.shareModal.collaborators = json.data || [];
+            }
+        },
+        async createShare() {
+            const body = {
+                permission: this.shareModal.newPerm,
+                expireHours: this.shareModal.expireHours ? parseInt(this.shareModal.expireHours) : null
+            };
+            const json = await this.api(`/api/docs/${this.doc.id}/share`, {
+                method: 'POST',
+                body: body
+            });
+            if (json && json.code === 200) {
+                this.shareModal.msg = '分享链接已生成';
+                this.shareModal.msgError = false;
+                this.shareModal.expireHours = null;
+                this.loadShares();
+            } else {
+                this.shareModal.msg = (json && json.message) || '生成失败';
+                this.shareModal.msgError = true;
+            }
+        },
+        async revokeShare(token) {
+            const json = await this.api(`/api/docs/${this.doc.id}/shares/${token}`, {
+                method: 'DELETE'
+            });
+            if (json && json.code === 200) {
+                this.loadShares();
+            }
+        },
+        shareUrl(token) {
+            return location.origin + '/editor.html?share=' + token;
+        },
+        async copyLink(url) {
+            try {
+                await navigator.clipboard.writeText(url);
+                this.shareModal.msg = '已复制到剪贴板';
+                this.shareModal.msgError = false;
+                setTimeout(() => { if (this.shareModal.msg === '已复制到剪贴板') this.shareModal.msg = ''; }, 2000);
+            } catch (e) {
+                prompt('复制以下链接', url);
+            }
+        },
+        async addCollaborator() {
+            if (!this.shareModal.newCollabUser.trim()) {
+                this.shareModal.collabMsg = '请输入用户名';
+                this.shareModal.collabMsgError = true;
+                return;
+            }
+            const json = await this.api(`/api/docs/${this.doc.id}/collaborators`, {
+                method: 'POST',
+                body: {
+                    username: this.shareModal.newCollabUser.trim(),
+                    role: this.shareModal.newCollabRole
+                }
+            });
+            if (json && json.code === 200) {
+                this.shareModal.collabMsg = '协作者已添加';
+                this.shareModal.collabMsgError = false;
+                this.shareModal.newCollabUser = '';
+                this.loadCollaborators();
+                this.loadCollaboratorsForPanel();
+            } else {
+                this.shareModal.collabMsg = (json && json.message) || '添加失败';
+                this.shareModal.collabMsgError = true;
+            }
+        },
+        async removeCollaborator(collab) {
+            if (!confirm('确定移除协作者 ' + (collab.nickname || collab.username) + ' 吗？')) return;
+            const json = await this.api(`/api/docs/${this.doc.id}/collaborators/${collab.userId}`, {
+                method: 'DELETE'
+            });
+            if (json && json.code === 200) {
+                this.loadCollaborators();
+                this.loadCollaboratorsForPanel();
+            }
+        },
+        async updateCollabRole(collab, newRole) {
+            const json = await this.api(`/api/docs/${this.doc.id}/collaborators/${collab.userId}`, {
+                method: 'PUT',
+                body: { role: newRole }
+            });
+            if (json && json.code === 200) {
+                this.loadCollaborators();
+                this.loadCollaboratorsForPanel();
+            }
+        },
+        backToList() { location.href = '/index.html'; },
+        goToIndex() { location.href = '/index.html'; },
+        formatTime(t) { return t ? t.substring(0, 16).replace('T', ' ') : ''; },
+        permLabel(p) {
+            if (p === 'owner') return '拥有者';
+            if (p === 'editor') return '可编辑';
+            if (p === 'viewer') return '只读';
+            return p || '-';
+        },
+        connectWebSocket(docId) {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+
+            const socket = new SockJS('/ws');
+            this.stompClient = Stomp.over(socket);
+
+            this.stompClient.connect(
+                { Authorization: 'Bearer ' + token },
+                (frame) => {
+                    this.connected = true;
+                    console.log('WebSocket connected');
+
+                    this.stompClient.subscribe('/topic/doc/' + docId, (message) => {
+                        const event = JSON.parse(message.body);
+                        this.handleWsEvent(event);
+                    });
+
+                    this.stompClient.subscribe('/user/queue/sync', (message) => {
+                        const event = JSON.parse(message.body);
+                        this.handleWsEvent(event);
+                    });
+
+                    this.stompClient.send('/app/doc/' + docId + '/join', {}, JSON.stringify({}));
+                },
+                (error) => {
+                    console.error('WebSocket error:', error);
+                    this.connected = false;
+                }
+            );
+        },
+        handleWsEvent(event) {
+            const myUserId = this.getCurrentUserId();
+            if (event.type === 'full_sync') {
+                this.content = event.content;
+                this.version = event.version;
+                this.localVersion = event.version;
+                this.members = event.members || [];
+                this.pendingOps = [];
+                this.sentOps = [];
+                this.acknowledged = true;
+                this.assignColorsToMembers();
+            } else if (event.type === 'user_joined') {
+                this.members = this.members || [];
+                if (!this.members.find(m => m.userId === event.userId)) {
+                    this.members.push({ userId: event.userId, username: event.username });
+                }
+                this.assignColorsToMembers();
+                console.log(event.username + ' joined');
+            } else if (event.type === 'user_left') {
+                this.members = this.members || [];
+                this.members = this.members.filter(m => m.userId !== event.userId);
+                this.otherCursors = this.otherCursors.filter(c => c.userId !== event.userId);
+                console.log(event.username + ' left');
+            } else if (event.type === 'operation') {
+                if (event.userId !== myUserId) {
+                    const ops = event.operations || [];
+                    this.content = this.applyOpsToContent(this.content, ops);
+                    this.version = event.version;
+                }
+            } else if (event.type === 'ack') {
+                this.acknowledged = true;
+                this.sentOps = [];
+                this.sendPendingOps();
+            } else if (event.type === 'cursor_update') {
+                if (event.userId !== myUserId) {
+                    let cursor = this.otherCursors.find(c => c.userId === event.userId);
+                    if (!cursor) {
+                        cursor = { userId: event.userId, username: event.username };
+                        this.otherCursors.push(cursor);
+                    }
+                    cursor.cursorPosition = event.cursorPosition;
+                    cursor.top = this.estimateCursorTop(event.cursorPosition);
+                    cursor.left = this.estimateCursorLeft(event.cursorPosition);
+                    cursor.color = this.userColorMap[event.userId] || '#1a73e8';
+                }
+            }
+        },
+        applyOpsToContent(docContent, ops) {
+            let pos = 0;
+            let result = '';
+            for (const op of ops) {
+                if (op.type === 'retain') {
+                    result += docContent.slice(pos, pos + op.count);
+                    pos += op.count;
+                } else if (op.type === 'insert') {
+                    result += op.text || '';
+                } else if (op.type === 'delete') {
+                    pos += op.count;
+                }
+            }
+            result += docContent.slice(pos);
+            return result;
+        },
+        computeOps(oldContent, newContent) {
+            const ops = [];
+            let i = 0, j = 0;
+            while (i < oldContent.length || j < newContent.length) {
+                if (j < newContent.length && (i >= oldContent.length || oldContent[i] !== newContent[j])) {
+                    let insertEnd = j;
+                    while (insertEnd < newContent.length && (insertEnd - j === 0 || newContent[insertEnd] !== newContent[insertEnd - 1] || insertEnd - j < 3)) {
+                        insertEnd++;
+                    }
+                    if (insertEnd > j) {
+                        ops.push({ type: 'insert', text: newContent.slice(j, insertEnd) });
+                        j = insertEnd;
+                    }
+                } else if (i < oldContent.length && (j >= newContent.length || oldContent[i] !== newContent[j])) {
+                    let deleteEnd = i;
+                    while (deleteEnd < oldContent.length && (deleteEnd - i === 0 || oldContent[deleteEnd] !== oldContent[deleteEnd - 1] || deleteEnd - i < 3)) {
+                        deleteEnd++;
+                    }
+                    if (deleteEnd > i) {
+                        ops.push({ type: 'delete', count: deleteEnd - i });
+                        i = deleteEnd;
+                    }
+                } else {
+                    const minLen = Math.min(oldContent.length - i, newContent.length - j);
+                    if (minLen > 0) {
+                        ops.push({ type: 'retain', count: minLen });
+                    }
+                    i += minLen;
+                    j += minLen;
+                }
+            }
+            return ops.length > 0 ? ops : [{ type: 'retain', count: oldContent.length }];
+        },
+        sendPendingOps() {
+            if (this.pendingOps.length === 0 || !this.connected) return;
+            this.acknowledged = false;
+            const opsToSend = this.pendingOps.splice(0, this.pendingOps.length);
+            this.sentOps = opsToSend;
+
+            const docId = this.doc.id || new URLSearchParams(location.search).get('id');
+            if (docId && this.stompClient) {
+                this.stompClient.send('/app/doc/' + docId + '/operation', {}, JSON.stringify({
+                    operations: opsToSend,
+                    version: this.localVersion
+                }));
+            }
+        },
+        updateCursor() {
+            clearTimeout(this.cursorUpdateTimer);
+            this.cursorUpdateTimer = setTimeout(() => {
+                if (!this.connected) return;
+                const editor = document.getElementById('editor');
+                if (!editor) return;
+                const pos = editor.selectionStart;
+                const docId = this.doc.id || new URLSearchParams(location.search).get('id');
+                if (docId && this.stompClient) {
+                    this.stompClient.send('/app/doc/' + docId + '/cursor', {}, JSON.stringify({
+                        cursorPosition: pos,
+                        cursorEnd: editor.selectionEnd
+                    }));
+                }
+            }, 300);
+        },
+        estimateCursorTop(pos) {
+            const editor = document.getElementById('editor');
+            if (!editor) return 0;
+            const lineHeight = 28.8;
+            const text = editor.value.substring(0, pos);
+            const lines = text.split('\n');
+            return (lines.length - 1) * lineHeight + 48;
+        },
+        estimateCursorLeft(pos) {
+            const editor = document.getElementById('editor');
+            if (!editor) return 0;
+            const lineHeight = 28.8;
+            const text = editor.value.substring(0, pos);
+            const lastNewline = text.lastIndexOf('\n');
+            const lineText = lastNewline >= 0 ? text.substring(lastNewline + 1) : text;
+            return Math.min(lineText.length * 9.6 + 56, 800);
+        },
+        assignColorsToMembers() {
+            this.members.forEach((m, idx) => {
+                if (!this.userColorMap[m.userId]) {
+                    this.userColorMap[m.userId] = this.CURSOR_COLORS[idx % this.CURSOR_COLORS.length];
+                }
+                m.color = this.userColorMap[m.userId];
+            });
+        },
+        getCurrentUserId() {
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) return null;
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                return payload.userId || payload.sub;
+            } catch (e) { return null; }
+        },
+        beforeUnmount() {
+            if (this.stompClient) {
+                const docId = new URLSearchParams(location.search).get('id');
+                if (docId) {
+                    this.stompClient.send('/app/doc/' + docId + '/leave', {}, JSON.stringify({}));
+                }
+                this.stompClient.disconnect();
+            }
+        }
+    }
+}).mount('#app');
+</script>
+</body>
+</html>

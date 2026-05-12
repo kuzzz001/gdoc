@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>吉智文档 Gdoc</title>
+    <script src="/js/vue.global.prod.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif; background: linear-gradient(135deg, #f0f6ff 0%, #e8f0fe 100%); min-height: 100vh; }
+
+        .header {
+            background: linear-gradient(135deg, #1a73e8 0%, #4285f4 100%);
+            box-shadow: 0 4px 12px rgba(26,115,232,0.25);
+            padding: 0 32px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .logo { font-size: 20px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 10px; }
+        .logo-icon { 
+            width: 36px; 
+            height: 36px; 
+            background: rgba(255,255,255,0.2); 
+            border-radius: 10px; 
+            display: inline-flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 20px;
+            backdrop-filter: blur(4px);
+        }
+        .user-info { display: flex; align-items: center; gap: 16px; font-size: 14px; color: rgba(255,255,255,0.95); }
+        .user-info button {
+            padding: 7px 20px;
+            border: 1.5px solid rgba(255,255,255,0.4);
+            border-radius: 10px;
+            background: rgba(255,255,255,0.1);
+            cursor: pointer;
+            font-size: 13px;
+            color: #fff;
+            transition: all 0.2s;
+            font-weight: 500;
+            backdrop-filter: blur(4px);
+        }
+        .user-info button:hover { background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.6); transform: translateY(-1px); }
+
+        .main { max-width: 1000px; margin: 0 auto; padding: 32px 24px; }
+        .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; }
+        .toolbar h2 { font-size: 24px; color: #202124; font-weight: 700; letter-spacing: 0.5px; }
+        .btn-primary {
+            padding: 11px 28px;
+            background: linear-gradient(135deg, #1a73e8 0%, #4285f4 100%);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s;
+            box-shadow: 0 4px 12px rgba(26,115,232,0.3);
+            letter-spacing: 0.5px;
+        }
+        .btn-primary:hover { box-shadow: 0 6px 20px rgba(26,115,232,0.4); transform: translateY(-2px); }
+        .btn-primary:active { transform: translateY(0); box-shadow: 0 2px 8px rgba(26,115,232,0.3); }
+
+        .doc-list { display: flex; flex-direction: column; gap: 12px; }
+        .doc-card {
+            background: #fff;
+            border-radius: 14px;
+            padding: 20px 28px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: all 0.25s;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+            border: 1px solid #e8eaed;
+            position: relative;
+            overflow: hidden;
+        }
+        .doc-card::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: linear-gradient(135deg, #1a73e8 0%, #4285f4 100%);
+            opacity: 0;
+            transition: opacity 0.25s;
+        }
+        .doc-card:hover { 
+            box-shadow: 0 6px 16px rgba(26,115,232,0.12); 
+            border-color: #aecbfa; 
+            transform: translateY(-2px); 
+        }
+        .doc-card:hover::before { opacity: 1; }
+        .doc-title { font-size: 17px; font-weight: 600; color: #202124; margin-bottom: 8px; }
+        .doc-meta { font-size: 12px; color: #5f6368; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .doc-actions { display: flex; gap: 10px; }
+        .btn-sm {
+            padding: 7px 16px;
+            border: 1.5px solid #dadce0;
+            border-radius: 10px;
+            background: #fff;
+            cursor: pointer;
+            font-size: 12px;
+            color: #3c4043;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+        .btn-sm:hover { background: #f1f3f4; border-color: #1a73e8; color: #1a73e8; transform: translateY(-1px); }
+        .btn-danger { color: #d93025; border-color: #f5c6cb; }
+        .btn-danger:hover { background: #fce8e6; border-color: #d93025; }
+
+        .empty { text-align: center; padding: 100px 0; color: #5f6368; }
+        .empty-icon { font-size: 64px; margin-bottom: 20px; opacity: 0.6; }
+        .empty p { font-size: 16px; font-weight: 500; }
+
+        .paginator { display: flex; justify-content: center; gap: 10px; margin-top: 28px; }
+        .paginator button {
+            padding: 9px 18px;
+            border: 1.5px solid #dadce0;
+            border-radius: 10px;
+            background: #fff;
+            cursor: pointer;
+            font-size: 13px;
+            color: #3c4043;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+        .paginator button:hover:not(:disabled) { background: #e8f0fe; border-color: #1a73e8; color: #1a73e8; transform: translateY(-1px); }
+        .paginator button:disabled { opacity: .4; cursor: not-allowed; }
+
+        .badge { display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 14px; font-size: 11px; font-weight: 600; letter-spacing: 0.3px; }
+        .badge-owner { background: linear-gradient(135deg, #e8f0fe 0%, #d2e3fc 100%); color: #1a73e8; }
+        .badge-editor { background: linear-gradient(135deg, #e6f4ea 0%, #ceead6 100%); color: #137333; }
+        .badge-viewer { background: linear-gradient(135deg, #fef7e0 0%, #feefc3 100%); color: #b06000; }
+
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.45);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 1000;
+            animation: fadeIn .2s;
+            backdrop-filter: blur(3px);
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        .modal {
+            background: #fff;
+            border-radius: 18px;
+            width: 560px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 16px 48px rgba(0,0,0,0.2);
+            animation: slideUp 0.3s ease;
+            overflow: hidden;
+        }
+        .modal-header {
+            padding: 20px 28px;
+            border-bottom: 1px solid #e8eaed;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: linear-gradient(135deg, #f8faff 0%, #f0f4f8 100%);
+        }
+        .modal-header h3 { font-size: 18px; color: #202124; font-weight: 700; }
+        .modal-close { background: none; border: none; font-size: 24px; cursor: pointer; color: #5f6368; padding: 6px; border-radius: 8px; transition: all 0.2s; }
+        .modal-close:hover { background: #e8eaed; color: #202124; }
+        .modal-tabs { display: flex; border-bottom: 1px solid #e8eaed; padding: 0 28px; background: #fafbfc; }
+        .modal-tab {
+            padding: 14px 20px;
+            border: none;
+            background: none;
+            font-size: 14px;
+            color: #5f6368;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+        .modal-tab:hover { color: #1a73e8; }
+        .modal-tab.active { color: #1a73e8; border-bottom-color: #1a73e8; font-weight: 600; }
+        .modal-body { padding: 28px; overflow-y: auto; flex: 1; }
+        .modal-body h4 { font-size: 15px; color: #202124; font-weight: 600; margin-bottom: 16px; letter-spacing: 0.3px; }
+        .form-group { margin-bottom: 18px; }
+        .form-group label { display: block; font-size: 13px; color: #5f6368; margin-bottom: 8px; font-weight: 600; letter-spacing: 0.3px; }
+        .form-group select, .form-group input {
+            width: 100%;
+            padding: 11px 14px;
+            border: 1.5px solid #dadce0;
+            border-radius: 10px;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.2s;
+            background: #fafbfc;
+            color: #3c4043;
+        }
+        .form-group select:focus, .form-group input:focus { border-color: #1a73e8; box-shadow: 0 0 0 4px rgba(26,115,232,0.08); background: #fff; }
+        .form-row { display: flex; gap: 14px; }
+        .form-row .form-group { flex: 1; }
+        .btn-submit {
+            width: 100%;
+            padding: 11px;
+            background: linear-gradient(135deg, #1a73e8 0%, #4285f4 100%);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s;
+            box-shadow: 0 4px 12px rgba(26,115,232,0.25);
+            letter-spacing: 0.5px;
+        }
+        .btn-submit:hover { box-shadow: 0 6px 16px rgba(26,115,232,0.35); transform: translateY(-2px); }
+        .btn-submit:active { transform: translateY(0); box-shadow: 0 2px 8px rgba(26,115,232,0.25); }
+
+        .share-list { margin-top: 20px; }
+        .share-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px;
+            border: 1.5px solid #e8eaed;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            font-size: 13px;
+            background: #fafbfc;
+            transition: all 0.2s;
+        }
+        .share-item:hover { border-color: #aecbfa; background: #f8faff; transform: translateX(2px); }
+        .share-item .link { color: #1a73e8; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-right: 12px; font-weight: 500; }
+        .share-item .meta { color: #5f6368; margin-right: 12px; white-space: nowrap; font-size: 12px; }
+        .btn-copy { padding: 5px 14px; border: 1.5px solid #dadce0; border-radius: 8px; background: #fff; cursor: pointer; font-size: 12px; color: #1a73e8; transition: all 0.2s; font-weight: 500; }
+        .btn-copy:hover { background: #e8f0fe; border-color: #1a73e8; transform: translateY(-1px); }
+        .btn-revoke { padding: 5px 14px; border: 1.5px solid #f5c6cb; border-radius: 8px; background: #fff; color: #d93025; cursor: pointer; font-size: 12px; transition: all 0.2s; font-weight: 500; }
+        .btn-revoke:hover { background: #fce8e6; border-color: #d93025; transform: translateY(-1px); }
+
+        .collaborator-list { margin-top: 16px; }
+        .collab-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px;
+            border: 1.5px solid #e8eaed;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            font-size: 14px;
+            background: #fafbfc;
+            transition: all 0.2s;
+        }
+        .collab-item:hover { border-color: #aecbfa; background: #f8faff; transform: translateX(2px); }
+        .collab-item .name { flex: 1; color: #202124; font-weight: 500; }
+        .collab-item .role-select { padding: 6px 12px; border: 1.5px solid #dadce0; border-radius: 8px; font-size: 12px; margin-right: 12px; outline: none; cursor: pointer; }
+        .btn-remove { padding: 5px 14px; border: 1.5px solid #f5c6cb; border-radius: 8px; background: #fff; color: #d93025; cursor: pointer; font-size: 12px; transition: all 0.2s; font-weight: 500; }
+        .btn-remove:hover { background: #fce8e6; border-color: #d93025; transform: translateY(-1px); }
+
+        .msg { font-size: 13px; color: #5f6368; padding: 8px 0; }
+        .msg-error { color: #d93025; }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #1a73e8 0%, #4285f4 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(26,115,232,0.3);
+            overflow: hidden;
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+        .user-avatar:hover { transform: scale(1.05); box-shadow: 0 4px 12px rgba(26,115,232,0.4); }
+        .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+        .avatar-modal-body { padding: 20px 24px; }
+        .avatar-tabs { display: flex; border-bottom: 2px solid #e8f0fe; margin-bottom: 20px; }
+        .avatar-tab {
+            flex: 1; padding: 10px 0; text-align: center; font-size: 14px; font-weight: 600;
+            color: #5f6368; cursor: pointer; border-bottom: 2px solid transparent;
+            transition: all 0.2s; margin-bottom: -2px;
+        }
+        .avatar-tab:hover { color: #1a73e8; }
+        .avatar-tab.active { color: #1a73e8; border-bottom-color: #1a73e8; }
+
+        .avatar-preview-section {
+            display: flex; flex-direction: column; align-items: center; gap: 12px; margin-bottom: 20px;
+        }
+        .avatar-preview {
+            width: 96px; height: 96px; border-radius: 50%;
+            background: linear-gradient(135deg, #e8f0fe 0%, #d2e3fc 100%);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 38px; color: #1a73e8; overflow: hidden;
+            border: 3px solid #d2e3fc; box-shadow: 0 4px 16px rgba(26,115,232,0.15);
+            transition: all 0.3s;
+        }
+        .avatar-preview img { width: 100%; height: 100%; object-fit: cover; }
+        .avatar-preview-label { font-size: 12px; color: #9aa0a6; }
+
+        .default-avatars-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+            padding: 8px 0;
+        }
+        .default-avatar-item {
+            width: 64px; height: 64px; border-radius: 50%; cursor: pointer;
+            border: 3px solid transparent; transition: all 0.2s;
+            overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .default-avatar-item:hover { transform: scale(1.1); box-shadow: 0 4px 12px rgba(26,115,232,0.25); }
+        .default-avatar-item.selected { border-color: #1a73e8; box-shadow: 0 0 0 3px rgba(26,115,232,0.2); transform: scale(1.08); }
+        .default-avatar-item img { width: 100%; height: 100%; object-fit: cover; }
+
+        .avatar-upload-area {
+            display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 8px 0;
+        }
+        .avatar-input-wrapper { position: relative; }
+        .avatar-input { position: absolute; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+        .avatar-upload-btn {
+            padding: 9px 22px; background: linear-gradient(135deg, #1a73e8 0%, #4285f4 100%);
+            color: #fff; border: none; border-radius: 10px; font-size: 13px; font-weight: 600;
+            cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 8px rgba(26,115,232,0.25);
+        }
+        .avatar-upload-btn:hover { box-shadow: 0 4px 12px rgba(26,115,232,0.35); transform: translateY(-1px); }
+        .avatar-upload-hint { font-size: 12px; color: #9aa0a6; text-align: center; line-height: 1.6; }
+        .avatar-upload-hint strong { color: #5f6368; }
+
+        .avatar-actions { display: flex; gap: 10px; margin-top: 16px; justify-content: center; }
+        .avatar-actions .btn-submit { min-width: 100px; }
+        .btn-cancel-avatar {
+            padding: 9px 20px; background: #fff; color: #5f6368; border: 1.5px solid #dadce0;
+            border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+        }
+        .btn-cancel-avatar:hover { background: #f8f9fa; border-color: #bdc1c6; }
+
+        .social-badge {
+            position: absolute; top: -6px; right: -8px;
+            background: #ea4335; color: #fff;
+            font-size: 11px; font-weight: 700;
+            min-width: 18px; height: 18px;
+            border-radius: 9px;
+            display: inline-flex; align-items: center; justify-content: center;
+            padding: 0 5px;
+            border: 2px solid #1a73e8;
+            line-height: 1;
+            animation: badgePulse 2s ease-in-out infinite;
+        }
+        @keyframes badgePulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <div class="header">
+        <div class="logo"><span class="logo-icon">📄</span> 吉智文档</div>
+        <div class="user-info" v-if="user">
+            <div class="user-avatar" @click="openAvatarModal" :title="user.nickname || user.username">
+                <img v-if="user.avatarUrl" :src="user.avatarUrl" alt="avatar">
+                <span v-else>{{ (user.nickname || user.username).charAt(0).toUpperCase() }}</span>
+            </div>
+            <span>{{ user.nickname || user.username }}</span>
+            <button @click="goSocial" style="background:rgba(255,255,255,0.2);border-color:rgba(255,255,255,0.5);position:relative;">💬 社交<span v-if="socialUnread > 0" class="social-badge">{{ socialUnread > 99 ? '99+' : socialUnread }}</span></button>
+            <button @click="logout">退出登录</button>
+        </div>
+    </div>
+    <div class="main">
+        <div class="toolbar">
+            <h2>我的文档</h2>
+            <button class="btn-primary" @click="createDoc">+ 新建文档</button>
+        </div>
+
+        <div class="empty" v-if="docs.length===0 && !loading">
+            <div class="empty-icon">📝</div>
+            <p>还没有文档，点击「新建文档」开始吧</p>
+        </div>
+
+        <div class="doc-list">
+            <div class="doc-card" v-for="doc in docs" :key="doc.id" @click="openDoc(doc)">
+                <div>
+                    <div class="doc-title">{{ doc.title }}</div>
+                    <div class="doc-meta">
+                        <span :class="'badge badge-'+doc.permission">{{ permLabel(doc.permission) }}</span>
+                        <span>拥有者: {{ doc.ownerName }}</span>
+                        <span>更新于 {{ formatTime(doc.updatedAt) }}</span>
+                    </div>
+                </div>
+                <div class="doc-actions" @click.stop>
+                    <button class="btn-sm" @click="openShareModal(doc)">分享</button>
+                    <button class="btn-sm btn-danger" v-if="doc.permission==='owner'" @click="deleteDoc(doc)">删除</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="paginator" v-if="total > pageSize">
+            <button :disabled="pageNum <= 1" @click="pageNum--;loadDocs()">上一页</button>
+            <span style="line-height:36px;font-size:13px;color:#5f6368;">{{ pageNum }} / {{ Math.ceil(total/pageSize) }}</span>
+            <button :disabled="pageNum >= Math.ceil(total/pageSize)" @click="pageNum++;loadDocs()">下一页</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" v-if="shareModal.visible" @click.self="closeShareModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>📄 {{ shareModal.docTitle }}</h3>
+                <button class="modal-close" @click="closeShareModal">&times;</button>
+            </div>
+            <div class="modal-tabs">
+                <button class="modal-tab" :class="{active: shareModal.tab==='share'}" @click="shareModal.tab='share'">🔗 分享链接</button>
+                <button class="modal-tab" :class="{active: shareModal.tab==='collab'}" @click="shareModal.tab='collab';loadCollaborators()">👥 协作者</button>
+            </div>
+            <div class="modal-body">
+                <template v-if="shareModal.tab==='share'">
+                    <h4>创建新分享链接</h4>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>权限</label>
+                            <select v-model="shareModal.newPerm">
+                                <option value="view">只读</option>
+                                <option value="editor">可编辑</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>有效期（小时，留空为永久）</label>
+                            <input type="number" v-model="shareModal.expireHours" placeholder="例如: 24" min="1">
+                        </div>
+                    </div>
+                    <button class="btn-submit" @click="createShare">生成分享链接</button>
+                    <div class="msg" :class="{'msg-error': shareModal.msgError}">{{ shareModal.msg }}</div>
+
+                    <h4 v-if="shareModal.shares.length" style="margin-top: 20px;">已有分享链接</h4>
+                    <div class="share-list">
+                        <div class="share-item" v-for="s in shareModal.shares" :key="s.id">
+                            <span class="link">{{ shareUrl(s.token) }}</span>
+                            <span class="meta">{{ s.permission === 'editor' ? '可编辑' : '只读' }}</span>
+                            <span class="meta" v-if="s.expireAt">到期 {{ formatTime(s.expireAt) }}</span>
+                            <button class="btn-copy" @click="copyLink(shareUrl(s.token))">复制</button>
+                            <button class="btn-revoke" @click="revokeShare(s.token)">撤销</button>
+                        </div>
+                    </div>
+                </template>
+
+                <template v-if="shareModal.tab==='collab'">
+                    <h4>添加协作者</h4>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>用户名</label>
+                            <input type="text" v-model="shareModal.newCollabUser" placeholder="输入用户名">
+                        </div>
+                        <div class="form-group">
+                            <label>角色</label>
+                            <select v-model="shareModal.newCollabRole">
+                                <option value="editor">可编辑</option>
+                                <option value="viewer">只读</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn-submit" @click="addCollaborator">添加协作者</button>
+                    <div class="msg" :class="{'msg-error': shareModal.collabMsgError}">{{ shareModal.collabMsg }}</div>
+
+                    <h4 v-if="shareModal.collaborators.length" style="margin-top: 20px;">协作者列表</h4>
+                    <div class="collaborator-list">
+                        <div class="collab-item" v-for="c in shareModal.collaborators" :key="c.id">
+                            <span class="name">{{ c.nickname || c.username }}</span>
+                            <select class="role-select" :value="c.role" @change="updateCollabRole(c, $event.target.value)">
+                                <option value="editor">可编辑</option>
+                                <option value="viewer">只读</option>
+                            </select>
+                            <button class="btn-remove" @click="removeCollaborator(c)">移除</button>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" v-if="avatarModal.visible" @click.self="closeAvatarModal">
+        <div class="modal" style="width: 440px;">
+            <div class="modal-header">
+                <h3>👤 个人头像设置</h3>
+                <button class="modal-close" @click="closeAvatarModal">&times;</button>
+            </div>
+            <div class="avatar-modal-body">
+                <div class="avatar-preview-section">
+                    <div class="avatar-preview">
+                        <img v-if="avatarModal.previewUrl" :src="avatarModal.previewUrl" alt="avatar preview">
+                        <span v-else>{{ (user && (user.nickname || user.username) || 'U').charAt(0).toUpperCase() }}</span>
+                    </div>
+                    <div class="avatar-preview-label">头像预览</div>
+                </div>
+
+                <div class="avatar-tabs">
+                    <div class="avatar-tab" :class="{active: avatarModal.tab === 'default'}" @click="avatarModal.tab = 'default'; avatarModal.selectedFile = null;">默认头像</div>
+                    <div class="avatar-tab" :class="{active: avatarModal.tab === 'upload'}" @click="avatarModal.tab = 'upload'; avatarModal.selectedDefault = '';">上传头像</div>
+                </div>
+
+                <div v-if="avatarModal.tab === 'default'">
+                    <div class="default-avatars-grid">
+                        <div class="default-avatar-item" v-for="av in defaultAvatars" :key="av.url"
+                             :class="{selected: avatarModal.selectedDefault === av.url}"
+                             @click="selectDefaultAvatar(av.url)" :title="av.label">
+                            <img :src="av.url" :alt="av.label">
+                        </div>
+                    </div>
+                </div>
+
+                <div v-if="avatarModal.tab === 'upload'" class="avatar-upload-area">
+                    <div class="avatar-input-wrapper">
+                        <input type="file" class="avatar-input" accept="image/jpeg,image/png" @change="selectAvatar">
+                        <button class="avatar-upload-btn">📁 选择图片</button>
+                    </div>
+                    <p class="avatar-upload-hint">
+                        支持 <strong>JPG、PNG</strong> 格式，最大 <strong>5MB</strong><br>
+                        建议使用 <strong>1:1 比例</strong>，<strong>200×200</strong> 像素以上
+                    </p>
+                </div>
+
+                <div class="avatar-actions">
+                    <button class="btn-cancel-avatar" @click="closeAvatarModal">取消</button>
+                    <button class="btn-submit" @click="saveAvatar" :disabled="avatarModal.uploading || (!avatarModal.selectedFile && !avatarModal.selectedDefault)">
+                        {{ avatarModal.uploading ? '保存中...' : '保存头像' }}
+                    </button>
+                </div>
+                <div class="msg" :class="{'msg-error': avatarModal.msgError}" v-if="avatarModal.msg">{{ avatarModal.msg }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+const { createApp } = Vue;
+createApp({
+    data() {
+        return {
+            user: null,
+            docs: [],
+            loading: false,
+            pageNum: 1,
+            pageSize: 20,
+            total: 0,
+            shareModal: {
+                visible: false,
+                docId: null,
+                docTitle: '',
+                tab: 'share',
+                newPerm: 'view',
+                expireHours: null,
+                shares: [],
+                msg: '',
+                msgError: false,
+                newCollabUser: '',
+                newCollabRole: 'editor',
+                collaborators: [],
+                collabMsg: '',
+                collabMsgError: false
+            },
+            avatarModal: {
+                visible: false,
+                tab: 'default',
+                selectedFile: null,
+                selectedDefault: '',
+                previewUrl: '',
+                uploading: false,
+                msg: '',
+                msgError: false
+            },
+            defaultAvatars: [
+                { url: '/images/avatars/male1.svg', label: '蓝色男士' },
+                { url: '/images/avatars/female1.svg', label: '红色女士' },
+                { url: '/images/avatars/male2.svg', label: '绿色男士' },
+                { url: '/images/avatars/female2.svg', label: '紫色女士' },
+                { url: '/images/avatars/male3.svg', label: '橙色男士' },
+                { url: '/images/avatars/female3.svg', label: '青色女士' },
+                { url: '/images/avatars/male4.svg', label: '灰色男士' },
+                { url: '/images/avatars/female4.svg', label: '粉色女士' }
+            ],
+            socialUnread: 0,
+            socialUnreadTimer: null
+        };
+    },
+    created() {
+        const token = localStorage.getItem('token');
+        if (!token) { location.href = '/login.html'; return; }
+        this.user = JSON.parse(localStorage.getItem('user') || '{}');
+        this.loadDocs();
+        this.loadSocialUnread();
+        this.socialUnreadTimer = setInterval(() => this.loadSocialUnread(), 15000);
+    },
+    beforeUnmount() {
+        if (this.socialUnreadTimer) clearInterval(this.socialUnreadTimer);
+    },
+    methods: {
+        async api(url, options = {}) {
+            const headers = {
+                'Authorization': 'Bearer ' + localStorage.getItem('token'),
+                ...(options.headers || {})
+            };
+            if (options.body && typeof options.body === 'object') {
+                headers['Content-Type'] = 'application/json';
+                options.body = JSON.stringify(options.body);
+            }
+            const res = await fetch(url, { ...options, headers });
+            if (res.status === 401) { location.href = '/login.html'; return null; }
+            const json = await res.json();
+            return json;
+        },
+        async loadDocs() {
+            this.loading = true;
+            const json = await this.api(`/api/docs?page=${this.pageNum}&size=${this.pageSize}`);
+            if (json && json.code === 200) {
+                this.docs = json.data.records || [];
+                this.total = json.data.total || 0;
+            }
+            this.loading = false;
+        },
+        async createDoc() {
+            const json = await this.api('/api/docs', {
+                method: 'POST',
+                body: { title: '无标题文档' }
+            });
+            if (json && json.code === 200) {
+                location.href = '/editor.html?id=' + json.data.id;
+            } else {
+                alert('创建失败');
+            }
+        },
+        openDoc(doc) { location.href = '/editor.html?id=' + doc.id; },
+        async deleteDoc(doc) {
+            if (!confirm('确定删除「' + doc.title + '」吗？')) return;
+            await this.api('/api/docs/' + doc.id, { method: 'DELETE' });
+            this.loadDocs();
+        },
+        openShareModal(doc) {
+            this.shareModal = {
+                visible: true,
+                docId: doc.id,
+                docTitle: doc.title,
+                tab: 'share',
+                newPerm: 'view',
+                expireHours: null,
+                shares: [],
+                msg: '',
+                msgError: false,
+                newCollabUser: '',
+                newCollabRole: 'editor',
+                collaborators: [],
+                collabMsg: '',
+                collabMsgError: false
+            };
+            this.loadShares();
+        },
+        closeShareModal() {
+            this.shareModal.visible = false;
+        },
+        async loadShares() {
+            const json = await this.api(`/api/docs/${this.shareModal.docId}/shares`);
+            if (json && json.code === 200) {
+                this.shareModal.shares = json.data || [];
+            }
+        },
+        async loadCollaborators() {
+            const json = await this.api(`/api/docs/${this.shareModal.docId}/collaborators`);
+            if (json && json.code === 200) {
+                this.shareModal.collaborators = json.data || [];
+            }
+        },
+        async createShare() {
+            const body = {
+                permission: this.shareModal.newPerm,
+                expireHours: this.shareModal.expireHours ? parseInt(this.shareModal.expireHours) : null
+            };
+            const json = await this.api(`/api/docs/${this.shareModal.docId}/share`, {
+                method: 'POST',
+                body: body
+            });
+            if (json && json.code === 200) {
+                this.shareModal.msg = '分享链接已生成';
+                this.shareModal.msgError = false;
+                this.shareModal.expireHours = null;
+                this.loadShares();
+            } else {
+                this.shareModal.msg = (json && json.message) || '生成失败';
+                this.shareModal.msgError = true;
+            }
+        },
+        async revokeShare(token) {
+            const json = await this.api(`/api/docs/${this.shareModal.docId}/shares/${token}`, {
+                method: 'DELETE'
+            });
+            if (json && json.code === 200) {
+                this.loadShares();
+            }
+        },
+        shareUrl(token) {
+            return location.origin + '/editor.html?share=' + token;
+        },
+        async copyLink(url) {
+            try {
+                await navigator.clipboard.writeText(url);
+                this.shareModal.msg = '已复制到剪贴板';
+                this.shareModal.msgError = false;
+                setTimeout(() => { if (this.shareModal.msg === '已复制到剪贴板') this.shareModal.msg = ''; }, 2000);
+            } catch (e) {
+                prompt('复制以下链接', url);
+            }
+        },
+        async addCollaborator() {
+            if (!this.shareModal.newCollabUser.trim()) {
+                this.shareModal.collabMsg = '请输入用户名';
+                this.shareModal.collabMsgError = true;
+                return;
+            }
+            const json = await this.api(`/api/docs/${this.shareModal.docId}/collaborators`, {
+                method: 'POST',
+                body: {
+                    username: this.shareModal.newCollabUser.trim(),
+                    role: this.shareModal.newCollabRole
+                }
+            });
+            if (json && json.code === 200) {
+                this.shareModal.collabMsg = '协作者已添加';
+                this.shareModal.collabMsgError = false;
+                this.shareModal.newCollabUser = '';
+                this.loadCollaborators();
+            } else {
+                this.shareModal.collabMsg = (json && json.message) || '添加失败';
+                this.shareModal.collabMsgError = true;
+            }
+        },
+        async removeCollaborator(collab) {
+            if (!confirm('确定移除协作者 ' + (collab.nickname || collab.username) + ' 吗？')) return;
+            const json = await this.api(`/api/docs/${this.shareModal.docId}/collaborators/${collab.userId}`, {
+                method: 'DELETE'
+            });
+            if (json && json.code === 200) {
+                this.loadCollaborators();
+            }
+        },
+        async updateCollabRole(collab, newRole) {
+            const json = await this.api(`/api/docs/${this.shareModal.docId}/collaborators/${collab.userId}`, {
+                method: 'PUT',
+                body: { role: newRole }
+            });
+            if (json && json.code === 200) {
+                this.loadCollaborators();
+            }
+        },
+        logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            location.href = '/login.html';
+        },
+        goSocial() {
+            location.href = '/social.html';
+        },
+        async loadSocialUnread() {
+            const json = await this.api('/api/social/messages/unread-total');
+            if (json && json.code === 200) {
+                this.socialUnread = json.data || 0;
+            }
+        },
+        openAvatarModal() {
+            this.avatarModal.visible = true;
+            this.avatarModal.tab = 'default';
+            this.avatarModal.selectedFile = null;
+            this.avatarModal.selectedDefault = '';
+            this.avatarModal.previewUrl = this.user.avatarUrl || '';
+            this.avatarModal.msg = '';
+            this.avatarModal.msgError = false;
+        },
+        closeAvatarModal() {
+            this.avatarModal.visible = false;
+        },
+        selectDefaultAvatar(url) {
+            this.avatarModal.selectedDefault = url;
+            this.avatarModal.previewUrl = url;
+            this.avatarModal.selectedFile = null;
+            this.avatarModal.msg = '';
+        },
+        selectAvatar(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            if (!['image/jpeg', 'image/png'].includes(file.type)) {
+                this.avatarModal.msg = '仅支持 JPG、PNG 格式';
+                this.avatarModal.msgError = true;
+                return;
+            }
+            if (file.size > 5 * 1024 * 1024) {
+                this.avatarModal.msg = '文件大小不能超过 5MB';
+                this.avatarModal.msgError = true;
+                return;
+            }
+            this.avatarModal.selectedFile = file;
+            this.avatarModal.selectedDefault = '';
+            this.avatarModal.msg = '';
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                this.avatarModal.previewUrl = ev.target.result;
+            };
+            reader.readAsDataURL(file);
+        },
+        async saveAvatar() {
+            if (this.avatarModal.selectedDefault) {
+                await this.saveDefaultAvatar();
+            } else if (this.avatarModal.selectedFile) {
+                await this.uploadAvatar();
+            }
+        },
+        async saveDefaultAvatar() {
+            this.avatarModal.uploading = true;
+            this.avatarModal.msg = '';
+            try {
+                const avatarUrl = window.location.origin + this.avatarModal.selectedDefault;
+                const res = await this.api('/api/user/avatar', {
+                    method: 'PUT',
+                    body: { avatarUrl: avatarUrl }
+                });
+                if (res && res.code === 200) {
+                    this.user.avatarUrl = avatarUrl;
+                    localStorage.setItem('user', JSON.stringify(this.user));
+                    this.avatarModal.msg = '头像设置成功！';
+                    this.avatarModal.msgError = false;
+                    setTimeout(() => this.closeAvatarModal(), 1000);
+                } else {
+                    this.avatarModal.msg = '头像设置失败';
+                    this.avatarModal.msgError = true;
+                }
+            } catch (err) {
+                this.avatarModal.msg = '设置失败，请重试';
+                this.avatarModal.msgError = true;
+            }
+            this.avatarModal.uploading = false;
+        },
+        async uploadAvatar() {
+            if (!this.avatarModal.selectedFile) return;
+            this.avatarModal.uploading = true;
+            this.avatarModal.msg = '';
+            try {
+                const formData = new FormData();
+                formData.append('file', this.avatarModal.selectedFile);
+                const res = await fetch('/api/upload', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') },
+                    body: formData
+                });
+                const json = await res.json();
+                if (json.code === 200) {
+                    const updateRes = await this.api('/api/user/avatar', {
+                        method: 'PUT',
+                        body: { avatarUrl: json.data }
+                    });
+                    if (updateRes && updateRes.code === 200) {
+                        this.user.avatarUrl = json.data;
+                        localStorage.setItem('user', JSON.stringify(this.user));
+                        this.avatarModal.msg = '头像上传成功！';
+                        this.avatarModal.msgError = false;
+                        setTimeout(() => this.closeAvatarModal(), 1000);
+                    } else {
+                        this.avatarModal.msg = '头像更新失败';
+                        this.avatarModal.msgError = true;
+                    }
+                } else {
+                    this.avatarModal.msg = json.message || '上传失败';
+                    this.avatarModal.msgError = true;
+                }
+            } catch (err) {
+                this.avatarModal.msg = '上传失败，请重试';
+                this.avatarModal.msgError = true;
+            }
+            this.avatarModal.uploading = false;
+        },
+        formatTime(t) { return t ? t.substring(0, 16).replace('T', ' ') : ''; },
+        permLabel(p) {
+            if (p === 'owner') return '拥有者';
+            if (p === 'editor') return '可编辑';
+            if (p === 'viewer') return '只读';
+            return p || '-';
+        }
+    }
+}).mount('#app');
+</script>
+</body>
+</html>
