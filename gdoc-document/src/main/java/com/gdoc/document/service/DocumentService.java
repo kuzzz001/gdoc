@@ -92,6 +92,10 @@ public class DocumentService {
         }
 
         doc.setTitle(request.getTitle());
+        if (request.getContent() != null) {
+            doc.setContent(request.getContent());
+        }
+        doc.setVersion(doc.getVersion() + 1);
         documentMapper.updateById(doc);
         return toVO(doc, userId);
     }

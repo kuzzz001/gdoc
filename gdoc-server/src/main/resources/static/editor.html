@@ -7,6 +7,7 @@
     <script src="/js/vue.global.prod.js"></script>
     <script src="/js/sockjs.min.js"></script>
     <script src="/js/stomp.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif; background: linear-gradient(135deg, #f0f6ff 0%, #e8f0fe 100%); min-height: 100vh; }
@@ -24,160 +25,171 @@
             z-index: 100;
         }
         .toolbar .logo {
-            font-weight: 700;
-            color: #fff;
-            cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 8px;
-            font-size: 16px;
+            gap: 10px;
+            cursor: pointer;
             white-space: nowrap;
-            transition: opacity 0.2s;
         }
-        .toolbar .logo:hover { opacity: 0.9; }
-        .toolbar .logo-icon {
-            width: 32px;
-            height: 32px;
-            background: rgba(255,255,255,0.2);
-            border-radius: 8px;
-            display: inline-flex;
+        .toolbar .logo-icon-wrap {
+            width: 36px;
+            height: 36px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 10px;
+            display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 18px;
-            backdrop-filter: blur(4px);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.25);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .toolbar .logo:hover .logo-icon-wrap {
+            transform: rotate(-5deg) scale(1.05);
+            box-shadow: 0 4px 16px rgba(255,255,255,0.2);
+        }
+        .toolbar .logo-icon-wrap svg { width: 28px; height: 28px; }
+        .toolbar .logo-text {
+            font-family: 'Ma Shan Zheng', cursive;
+            font-size: 22px;
+            color: #fff;
+            letter-spacing: 2px;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            line-height: 1;
         }
         .toolbar input.title {
-            border: none;
-            outline: none;
-            font-size: 16px;
-            color: #fff;
-            flex: 1;
-            background: transparent;
-            padding: 8px 12px;
-            font-weight: 500;
-            border-radius: 6px;
-            transition: background 0.2s;
+            border: none; outline: none; font-size: 16px; color: #fff;
+            flex: 1; background: transparent; padding: 8px 12px;
+            font-weight: 500; border-radius: 6px; transition: background 0.2s;
         }
         .toolbar input.title::placeholder { color: rgba(255,255,255,0.6); }
         .toolbar input.title:focus { background: rgba(255,255,255,0.1); }
         .toolbar input.title:disabled { color: rgba(255,255,255,0.5); }
-        .toolbar .actions { display: flex; gap: 8px; }
+        .toolbar .actions { display: flex; gap: 8px; align-items: center; }
         .toolbar button {
-            padding: 7px 16px;
-            border: 1.5px solid rgba(255,255,255,0.3);
-            border-radius: 10px;
-            background: rgba(255,255,255,0.1);
-            cursor: pointer;
-            font-size: 13px;
-            color: #fff;
-            transition: all 0.2s;
-            white-space: nowrap;
-            font-weight: 500;
+            padding: 7px 16px; border: 1.5px solid rgba(255,255,255,0.3);
+            border-radius: 10px; background: rgba(255,255,255,0.1);
+            cursor: pointer; font-size: 13px; color: #fff;
+            transition: all 0.2s; white-space: nowrap; font-weight: 500;
             backdrop-filter: blur(4px);
         }
         .toolbar button:hover { background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.5); transform: translateY(-1px); }
+        .toolbar button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        .btn-save {
+            background: rgba(255,255,255,0.2) !important;
+            border-color: rgba(255,255,255,0.5) !important;
+            font-weight: 600 !important;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .btn-save:hover { background: rgba(255,255,255,0.3) !important; }
+        .btn-save.saving { opacity: 0.7; }
 
         .members-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
         .member-badge {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            padding: 4px 12px;
-            border-radius: 16px;
-            font-size: 12px;
-            color: #fff;
-            font-weight: 500;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-            backdrop-filter: blur(4px);
+            display: flex; align-items: center; gap: 6px;
+            padding: 4px 12px; border-radius: 16px; font-size: 12px;
+            color: #fff; font-weight: 500;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15); backdrop-filter: blur(4px);
         }
         .member-badge .dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.8); }
-        .member-badge .mini-avatar {
-            width: 18px; height: 18px; border-radius: 50%; overflow: hidden;
-            border: 1.5px solid rgba(255,255,255,0.6);
-        }
+        .member-badge .mini-avatar { width: 18px; height: 18px; border-radius: 50%; overflow: hidden; border: 1.5px solid rgba(255,255,255,0.6); }
         .member-badge .mini-avatar img { width: 100%; height: 100%; object-fit: cover; }
         .toolbar-avatar {
-            width: 34px;
-            height: 34px;
-            border-radius: 50%;
+            width: 34px; height: 34px; border-radius: 50%;
             background: rgba(255,255,255,0.25);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #fff;
-            font-size: 15px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            overflow: hidden;
-            border: 2px solid rgba(255,255,255,0.3);
-            margin-left: 12px;
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-size: 15px; font-weight: 600;
+            cursor: pointer; transition: all 0.2s; overflow: hidden;
+            border: 2px solid rgba(255,255,255,0.3); margin-left: 12px;
         }
         .toolbar-avatar:hover { background: rgba(255,255,255,0.35); transform: scale(1.05); }
         .toolbar-avatar img { width: 100%; height: 100%; object-fit: cover; }
 
-        .editor-wrapper { display: flex; height: calc(100vh - 56px - 32px); }
-        .editor-area {
-            flex: 1;
-            padding: 28px;
-            display: flex;
-            justify-content: center;
-            overflow-y: auto;
-            background: linear-gradient(135deg, #f0f6ff 0%, #e8f0fe 100%);
+        .format-bar {
+            background: #fff; border-bottom: 1px solid #e0e0e0;
+            padding: 6px 20px; display: flex; align-items: center;
+            gap: 4px; flex-wrap: wrap;
+            position: sticky; top: 56px; z-index: 99;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.04);
         }
+        .format-bar .separator { width: 1px; height: 24px; background: #e0e0e0; margin: 0 6px; }
+        .format-btn {
+            width: 34px; height: 34px; border: none; background: transparent;
+            border-radius: 6px; cursor: pointer; display: flex;
+            align-items: center; justify-content: center;
+            color: #444; font-size: 14px; transition: all 0.15s; position: relative;
+        }
+        .format-btn:hover { background: #e8f0fe; color: #1a73e8; }
+        .format-btn.active { background: #d2e3fc; color: #1a73e8; }
+        .format-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .format-btn:disabled:hover { background: transparent; color: #444; }
+        .format-btn svg { width: 18px; height: 18px; }
+
+        .format-select {
+            height: 34px; padding: 0 10px; border: 1px solid #dadce0;
+            border-radius: 6px; font-size: 13px; color: #444;
+            background: #fff; cursor: pointer; outline: none; transition: all 0.15s;
+        }
+        .format-select:hover { border-color: #1a73e8; }
+        .format-select:focus { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(26,115,232,0.15); }
+        .font-size-select { width: 65px; }
+        .font-family-select { width: 130px; }
+
+        .color-btn-wrapper { position: relative; width: 34px; height: 34px; }
+        .color-btn-wrapper input[type="color"] {
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 6px;
+            border: none; padding: 0; cursor: pointer; background: transparent;
+        }
+        .color-btn-wrapper input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+        .color-btn-wrapper input[type="color"]::-webkit-color-swatch { border: none; border-radius: 0 0 3px 3px; }
+
+        .editor-wrapper { display: flex; height: calc(100vh - 56px - 44px - 32px); }
+        .editor-area {
+            flex: 1; padding: 28px; display: flex; justify-content: center;
+            overflow-y: auto; background: linear-gradient(135deg, #f0f6ff 0%, #e8f0fe 100%);
+        }
+        .editor-container { position: relative; width: 100%; max-width: 850px; }
         #editor {
-            width: 100%;
-            max-width: 850px;
-            min-height: 600px;
-            border: none;
-            outline: none;
-            resize: none;
-            font-size: 16px;
-            line-height: 1.9;
-            color: #202124;
-            background: #fff;
-            padding: 56px 64px;
-            box-shadow: 
-                0 2px 8px rgba(0,0,0,0.06),
-                0 8px 24px rgba(0,0,0,0.08);
+            width: 100%; min-height: 600px; border: none; outline: none;
+            font-size: 16px; line-height: 1.9; color: #202124;
+            background: #fff; padding: 56px 64px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.08);
             border-radius: 12px;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
-            transition: box-shadow 0.3s;
+            transition: box-shadow 0.3s; overflow-y: auto;
+            word-wrap: break-word; white-space: pre-wrap;
         }
-        #editor:focus {
-            box-shadow: 
-                0 4px 12px rgba(0,0,0,0.08),
-                0 12px 32px rgba(0,0,0,0.1);
+        #editor:focus { box-shadow: 0 4px 12px rgba(0,0,0,0.08), 0 12px 32px rgba(0,0,0,0.1); }
+        #editor:empty:before { content: attr(data-placeholder); color: #9aa0a6; pointer-events: none; }
+        #editor[contenteditable="false"] { background: #fafbfc; color: #5f6368; }
+        #editor h1 { font-size: 28px; font-weight: 700; margin: 16px 0 8px; line-height: 1.4; }
+        #editor h2 { font-size: 24px; font-weight: 600; margin: 14px 0 6px; line-height: 1.4; }
+        #editor h3 { font-size: 20px; font-weight: 600; margin: 12px 0 4px; line-height: 1.4; }
+        #editor ul, #editor ol { padding-left: 24px; margin: 8px 0; }
+        #editor li { margin: 4px 0; }
+        #editor blockquote {
+            border-left: 4px solid #1a73e8; padding: 8px 16px; margin: 12px 0;
+            background: #f8faff; border-radius: 0 8px 8px 0; color: #5f6368;
         }
-        #editor:disabled { background: #fafbfc; color: #5f6368; }
-        #editor::placeholder { color: #9aa0a6; }
+        #editor hr { border: none; border-top: 2px solid #e0e0e0; margin: 16px 0; }
+        #editor a { color: #1a73e8; text-decoration: underline; }
+        #editor img { max-width: 100%; border-radius: 8px; margin: 8px 0; }
 
         .status-bar {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 32px;
+            position: fixed; bottom: 0; left: 0; right: 0; height: 32px;
             background: linear-gradient(135deg, #fff 0%, #f8faff 100%);
-            border-top: 1px solid #e8eaed;
-            display: flex;
-            align-items: center;
-            padding: 0 20px;
-            font-size: 12px;
-            color: #5f6368;
-            gap: 20px;
+            border-top: 1px solid #e8eaed; display: flex; align-items: center;
+            padding: 0 20px; font-size: 12px; color: #5f6368; gap: 20px;
             box-shadow: 0 -2px 6px rgba(0,0,0,0.04);
         }
         .status-bar .saved { color: #137333; font-weight: 600; }
+        .status-bar .saving-indicator { color: #e37400; font-weight: 500; }
 
         .info-panel {
-            width: 0;
-            overflow: hidden;
+            width: 0; overflow: hidden;
             background: linear-gradient(135deg, #fff 0%, #f8faff 100%);
-            border-left: 1px solid #e8eaed;
-            transition: width 0.3s ease;
-            font-size: 13px;
-            box-shadow: -4px 0 12px rgba(0,0,0,0.04);
+            border-left: 1px solid #e8eaed; transition: width 0.3s ease;
+            font-size: 13px; box-shadow: -4px 0 12px rgba(0,0,0,0.04);
         }
         .info-panel.open { width: 320px; padding: 24px; overflow-y: auto; }
         .info-panel h4 { margin-bottom: 16px; color: #202124; font-size: 15px; font-weight: 700; letter-spacing: 0.3px; }
@@ -186,75 +198,44 @@
         .info-panel input { width: 100%; padding: 9px 12px; border: 1.5px solid #dadce0; border-radius: 8px; font-size: 13px; outline: none; transition: all 0.2s; }
         .info-panel input:focus { border-color: #1a73e8; box-shadow: 0 0 0 4px rgba(26,115,232,0.08); }
         .btn-panel {
-            width: 100%;
-            padding: 9px;
-            border: 1.5px solid #dadce0;
-            border-radius: 10px;
-            background: #fff;
-            cursor: pointer;
-            font-size: 13px;
-            color: #1a73e8;
-            transition: all 0.2s;
-            margin-top: 8px;
-            font-weight: 500;
+            width: 100%; padding: 9px; border: 1.5px solid #dadce0;
+            border-radius: 10px; background: #fff; cursor: pointer;
+            font-size: 13px; color: #1a73e8; transition: all 0.2s;
+            margin-top: 8px; font-weight: 500;
         }
         .btn-panel:hover { background: #e8f0fe; border-color: #1a73e8; transform: translateY(-1px); }
 
         .member-cursor {
-            position: absolute;
-            height: 22px;
-            font-size: 11px;
-            padding: 3px 8px;
-            border-radius: 6px 6px 6px 0;
-            color: #fff;
-            pointer-events: none;
-            z-index: 10;
-            white-space: nowrap;
-            transform: translateY(-100%);
-            font-weight: 500;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+            position: absolute; height: 22px; font-size: 11px;
+            padding: 3px 8px; border-radius: 6px 6px 6px 0;
+            color: #fff; pointer-events: none; z-index: 10;
+            white-space: nowrap; transform: translateY(-100%);
+            font-weight: 500; box-shadow: 0 2px 6px rgba(0,0,0,0.2);
         }
-        .editor-container { position: relative; width: 100%; max-width: 850px; }
 
         .share-banner {
             background: linear-gradient(135deg, #fef7e0 0%, #feefc3 100%);
-            padding: 12px 20px;
-            text-align: center;
-            font-size: 13px;
-            color: #b06000;
-            font-weight: 500;
-            border-bottom: 1px solid #f5d88e;
+            padding: 12px 20px; text-align: center; font-size: 13px;
+            color: #b06000; font-weight: 500; border-bottom: 1px solid #f5d88e;
         }
         .share-banner a { color: #1a73e8; text-decoration: none; font-weight: 600; }
         .share-banner a:hover { text-decoration: underline; }
 
         .modal-overlay {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.45);
-            display: flex; align-items: center; justify-content: center;
-            z-index: 1000;
-            animation: fadeIn .2s;
-            backdrop-filter: blur(3px);
+            background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center;
+            z-index: 1000; animation: fadeIn .2s; backdrop-filter: blur(3px);
         }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
         .modal {
-            background: #fff;
-            border-radius: 18px;
-            width: 560px;
-            max-height: 80vh;
-            display: flex;
-            flex-direction: column;
-            box-shadow: 0 16px 48px rgba(0,0,0,0.2);
-            animation: slideUp 0.3s ease;
-            overflow: hidden;
+            background: #fff; border-radius: 18px; width: 560px; max-height: 80vh;
+            display: flex; flex-direction: column;
+            box-shadow: 0 16px 48px rgba(0,0,0,0.2); animation: slideUp 0.3s ease; overflow: hidden;
         }
         .modal-header {
-            padding: 20px 28px;
-            border-bottom: 1px solid #e8eaed;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+            padding: 20px 28px; border-bottom: 1px solid #e8eaed;
+            display: flex; align-items: center; justify-content: space-between;
             background: linear-gradient(135deg, #f8faff 0%, #f0f4f8 100%);
         }
         .modal-header h3 { font-size: 18px; color: #202124; font-weight: 700; }
@@ -262,16 +243,9 @@
         .modal-close:hover { background: #e8eaed; color: #202124; }
         .modal-tabs { display: flex; border-bottom: 1px solid #e8eaed; padding: 0 28px; background: #fafbfc; }
         .modal-tab {
-            padding: 14px 20px;
-            border: none;
-            background: none;
-            font-size: 14px;
-            color: #5f6368;
-            cursor: pointer;
-            border-bottom: 2px solid transparent;
-            margin-bottom: -1px;
-            transition: all 0.2s;
-            font-weight: 500;
+            padding: 14px 20px; border: none; background: none; font-size: 14px;
+            color: #5f6368; cursor: pointer; border-bottom: 2px solid transparent;
+            margin-bottom: -1px; transition: all 0.2s; font-weight: 500;
         }
         .modal-tab:hover { color: #1a73e8; }
         .modal-tab.active { color: #1a73e8; border-bottom-color: #1a73e8; font-weight: 600; }
@@ -280,48 +254,28 @@
         .form-group { margin-bottom: 18px; }
         .form-group label { display: block; font-size: 13px; color: #5f6368; margin-bottom: 8px; font-weight: 600; letter-spacing: 0.3px; }
         .form-group select, .form-group input {
-            width: 100%;
-            padding: 11px 14px;
-            border: 1.5px solid #dadce0;
-            border-radius: 10px;
-            font-size: 14px;
-            outline: none;
-            transition: all 0.2s;
-            background: #fafbfc;
-            color: #3c4043;
+            width: 100%; padding: 11px 14px; border: 1.5px solid #dadce0;
+            border-radius: 10px; font-size: 14px; outline: none;
+            transition: all 0.2s; background: #fafbfc; color: #3c4043;
         }
         .form-group select:focus, .form-group input:focus { border-color: #1a73e8; box-shadow: 0 0 0 4px rgba(26,115,232,0.08); background: #fff; }
         .form-row { display: flex; gap: 14px; }
         .form-row .form-group { flex: 1; }
         .btn-submit {
-            width: 100%;
-            padding: 11px;
+            width: 100%; padding: 11px;
             background: linear-gradient(135deg, #1a73e8 0%, #4285f4 100%);
-            color: #fff;
-            border: none;
-            border-radius: 10px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.25s;
-            box-shadow: 0 4px 12px rgba(26,115,232,0.25);
-            letter-spacing: 0.5px;
+            color: #fff; border: none; border-radius: 10px;
+            font-size: 14px; font-weight: 600; cursor: pointer;
+            transition: all 0.25s; box-shadow: 0 4px 12px rgba(26,115,232,0.25); letter-spacing: 0.5px;
         }
         .btn-submit:hover { box-shadow: 0 6px 16px rgba(26,115,232,0.35); transform: translateY(-2px); }
         .btn-submit:active { transform: translateY(0); box-shadow: 0 2px 8px rgba(26,115,232,0.25); }
 
         .share-list { margin-top: 20px; }
         .share-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 14px 16px;
-            border: 1.5px solid #e8eaed;
-            border-radius: 12px;
-            margin-bottom: 12px;
-            font-size: 13px;
-            background: #fafbfc;
-            transition: all 0.2s;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 14px 16px; border: 1.5px solid #e8eaed; border-radius: 12px;
+            margin-bottom: 12px; font-size: 13px; background: #fafbfc; transition: all 0.2s;
         }
         .share-item:hover { border-color: #aecbfa; background: #f8faff; transform: translateX(2px); }
         .share-item .link { color: #1a73e8; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-right: 12px; font-weight: 500; }
@@ -333,16 +287,9 @@
 
         .collaborator-list { margin-top: 16px; }
         .collab-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 14px 16px;
-            border: 1.5px solid #e8eaed;
-            border-radius: 12px;
-            margin-bottom: 12px;
-            font-size: 14px;
-            background: #fafbfc;
-            transition: all 0.2s;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 14px 16px; border: 1.5px solid #e8eaed; border-radius: 12px;
+            margin-bottom: 12px; font-size: 14px; background: #fafbfc; transition: all 0.2s;
         }
         .collab-item:hover { border-color: #aecbfa; background: #f8faff; transform: translateX(2px); }
         .collab-item .name { flex: 1; color: #202124; font-weight: 500; }
@@ -352,6 +299,30 @@
 
         .msg { font-size: 13px; color: #5f6368; padding: 8px 0; }
         .msg-error { color: #d93025; }
+
+        .link-modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center;
+            z-index: 1001; backdrop-filter: blur(3px);
+        }
+        .link-modal {
+            background: #fff; border-radius: 14px; padding: 24px;
+            width: 420px; box-shadow: 0 16px 48px rgba(0,0,0,0.2); animation: slideUp 0.3s ease;
+        }
+        .link-modal h4 { font-size: 16px; color: #202124; margin-bottom: 16px; font-weight: 700; }
+        .link-modal input {
+            width: 100%; padding: 10px 14px; border: 1.5px solid #dadce0;
+            border-radius: 8px; font-size: 14px; outline: none; margin-bottom: 12px;
+        }
+        .link-modal input:focus { border-color: #1a73e8; box-shadow: 0 0 0 3px rgba(26,115,232,0.1); }
+        .link-modal .btn-row { display: flex; gap: 10px; justify-content: flex-end; }
+        .link-modal .btn-row button {
+            padding: 8px 20px; border-radius: 8px; font-size: 14px; cursor: pointer;
+            border: 1.5px solid #dadce0; background: #fff; color: #444; transition: all 0.2s;
+        }
+        .link-modal .btn-row button:hover { background: #f5f5f5; }
+        .link-modal .btn-row button.primary { background: #1a73e8; color: #fff; border-color: #1a73e8; }
+        .link-modal .btn-row button.primary:hover { background: #1557b0; }
     </style>
 </head>
 <body>
@@ -363,9 +334,29 @@
         </span>
     </div>
     <div class="toolbar">
-        <div class="logo" @click="backToList"><span class="logo-icon">📄</span> 吉智文档</div>
+        <div class="logo" @click="backToList">
+            <div class="logo-icon-wrap">
+                <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="docGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#e8f0fe;stop-opacity:1" />
+                        </linearGradient>
+                    </defs>
+                    <rect x="6" y="4" width="20" height="24" rx="3" fill="url(#docGrad)" opacity="0.95"/>
+                    <path d="M10 11h12M10 15h12M10 19h8" stroke="#4285f4" stroke-width="2" stroke-linecap="round"/>
+                    <circle cx="22" cy="22" r="6" fill="#4285f4"/>
+                    <path d="M20 22h4M22 20v4" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+            </div>
+            <span class="logo-text">吉智文档</span>
+        </div>
         <input class="title" v-model="doc.title" @change="saveTitle" placeholder="无标题文档" :disabled="!canEdit">
         <div class="actions">
+            <button class="btn-save" :class="{saving: isSaving}" @click="manualSave" :disabled="!canEdit || isSaving">
+                <span>{{ isSaving ? '⏳' : '💾' }}</span>
+                {{ isSaving ? '保存中...' : '保存' }}
+            </button>
             <button v-if="currentUser" class="toolbar-avatar" @click="goToIndex">
                 <img v-if="currentUser.avatarUrl" :src="currentUser.avatarUrl" alt="avatar">
                 <span v-else>{{ (currentUser.nickname || currentUser.username || 'U').charAt(0).toUpperCase() }}</span>
@@ -381,16 +372,125 @@
             </div>
         </div>
     </div>
+
+    <div class="format-bar" v-if="canEdit">
+        <select class="format-select font-family-select" @change="execFontFamily($event.target.value)" :disabled="!canEdit">
+            <option value="">字体</option>
+            <option value="Arial">Arial</option>
+            <option value="Times New Roman">Times New Roman</option>
+            <option value="Georgia">Georgia</option>
+            <option value="Courier New">Courier New</option>
+            <option value="Verdana">Verdana</option>
+            <option value="Microsoft YaHei">微软雅黑</option>
+            <option value="SimSun">宋体</option>
+            <option value="KaiTi">楷体</option>
+            <option value="SimHei">黑体</option>
+            <option value="FangSong">仿宋</option>
+        </select>
+        <select class="format-select font-size-select" @change="execFontSize($event.target.value)" :disabled="!canEdit">
+            <option value="">字号</option>
+            <option value="1">10px</option>
+            <option value="2">13px</option>
+            <option value="3">16px</option>
+            <option value="4">18px</option>
+            <option value="5">24px</option>
+            <option value="6">32px</option>
+            <option value="7">48px</option>
+        </select>
+
+        <div class="separator"></div>
+
+        <button class="format-btn" @click="execCmd('bold')" title="加粗 (Ctrl+B)" :disabled="!canEdit">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h8a4 4 0 014 4 4 4 0 01-4 4H6z"/><path d="M6 12h9a4 4 0 014 4 4 4 0 01-4 4H6z"/></svg>
+        </button>
+        <button class="format-btn" @click="execCmd('italic')" title="斜体 (Ctrl+I)" :disabled="!canEdit">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="4" x2="10" y2="4"/><line x1="14" y1="20" x2="5" y2="20"/><line x1="15" y1="4" x2="9" y2="20"/></svg>
+        </button>
+        <button class="format-btn" @click="execCmd('underline')" title="下划线 (Ctrl+U)" :disabled="!canEdit">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v7a6 6 0 006 6 6 6 0 006-6V3"/><line x1="4" y1="21" x2="20" y2="21"/></svg>
+        </button>
+        <button class="format-btn" @click="execCmd('strikeThrough')" title="删除线" :disabled="!canEdit">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="12" x2="20" y2="12"/><path d="M17.5 7.5c0-2-1.5-3.5-5.5-3.5S6 5 6 7.5c0 4 12 3 12 7.5 0 2.5-2.5 4-6 4s-6-1.5-6-4"/></svg>
+        </button>
+
+        <div class="separator"></div>
+
+        <div class="color-btn-wrapper">
+            <button class="format-btn" @click="execCmd('foreColor', fontColor)" title="文字颜色" :disabled="!canEdit">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2L4.5 18h2l1.5-4h7l1.5 4h2L13.5 2h-4z"/><path d="M10.5 5L8 12h8l-2.5-7h-3z"/></svg>
+            </button>
+            <input type="color" v-model="fontColor" @input="execCmd('foreColor', fontColor)" :disabled="!canEdit">
+        </div>
+        <div class="color-btn-wrapper">
+            <button class="format-btn" @click="execCmd('hiliteColor', bgColor)" title="背景颜色" :disabled="!canEdit">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 7h10v10H7z" fill="currentColor" opacity="0.3"/></svg>
+            </button>
+            <input type="color" v-model="bgColor" @input="execCmd('hiliteColor', bgColor)" :disabled="!canEdit">
+        </div>
+
+        <div class="separator"></div>
+
+        <button class="format-btn" @click="execCmd('justifyLeft')" title="左对齐" :disabled="!canEdit">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/></svg>
+        </button>
+        <button class="format-btn" @click="execCmd('justifyCenter')" title="居中" :disabled="!canEdit">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+        </button>
+        <button class="format-btn" @click="execCmd('justifyRight')" title="右对齐" :disabled="!canEdit">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="9" y1="12" x2="21" y2="12"/><line x1="6" y1="18" x2="21" y2="18"/></svg>
+        </button>
+
+        <div class="separator"></div>
+
+        <button class="format-btn" @click="execCmd('insertUnorderedList')" title="无序列表" :disabled="!canEdit">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="9" y1="6" x2="20" y2="6"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="18" x2="20" y2="18"/><circle cx="5" cy="6" r="1.5" fill="currentColor"/><circle cx="5" cy="12" r="1.5" fill="currentColor"/><circle cx="5" cy="18" r="1.5" fill="currentColor"/></svg>
+        </button>
+        <button class="format-btn" @click="execCmd('insertOrderedList')" title="有序列表" :disabled="!canEdit">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="10" y1="6" x2="20" y2="6"/><line x1="10" y1="12" x2="20" y2="12"/><line x1="10" y1="18" x2="20" y2="18"/><text x="3" y="8" font-size="7" fill="currentColor" stroke="none" font-weight="bold">1</text><text x="3" y="14" font-size="7" fill="currentColor" stroke="none" font-weight="bold">2</text><text x="3" y="20" font-size="7" fill="currentColor" stroke="none" font-weight="bold">3</text></svg>
+        </button>
+
+        <div class="separator"></div>
+
+        <button class="format-btn" @click="execCmd('formatBlock', 'H1')" title="标题1" :disabled="!canEdit" style="font-weight:800;font-size:15px;">H1</button>
+        <button class="format-btn" @click="execCmd('formatBlock', 'H2')" title="标题2" :disabled="!canEdit" style="font-weight:700;font-size:14px;">H2</button>
+        <button class="format-btn" @click="execCmd('formatBlock', 'H3')" title="标题3" :disabled="!canEdit" style="font-weight:600;font-size:13px;">H3</button>
+        <button class="format-btn" @click="execCmd('formatBlock', 'BLOCKQUOTE')" title="引用" :disabled="!canEdit">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V21z"/><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3z"/></svg>
+        </button>
+
+        <div class="separator"></div>
+
+        <button class="format-btn" @click="insertLink" title="插入链接" :disabled="!canEdit">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+        </button>
+        <button class="format-btn" @click="execCmd('insertHorizontalRule')" title="分割线" :disabled="!canEdit">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"/></svg>
+        </button>
+        <button class="format-btn" @click="execCmd('removeFormat')" title="清除格式" :disabled="!canEdit">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+        </button>
+
+        <div class="separator"></div>
+
+        <button class="format-btn" @click="execCmd('undo')" title="撤销 (Ctrl+Z)" :disabled="!canEdit">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+        </button>
+        <button class="format-btn" @click="execCmd('redo')" title="重做 (Ctrl+Y)" :disabled="!canEdit">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+        </button>
+    </div>
+
     <div class="editor-wrapper">
         <div class="editor-area">
             <div class="editor-container">
-                <textarea id="editor"
-                      v-model="content"
-                      @input="onContentChange"
-                      @click="updateCursor"
-                      @keyup="updateCursor"
-                      placeholder="开始输入内容..."
-                      :disabled="!canEdit"></textarea>
+                <div id="editor"
+                     contenteditable="true"
+                     @input="onContentChange"
+                     @click="updateCursor"
+                     @keyup="updateCursor"
+                     data-placeholder="开始输入内容..."
+                     :contenteditable="canEdit ? 'true' : 'false'"
+                     v-html="content"></div>
                 <div class="member-cursor" v-for="cursor in otherCursors" :key="cursor.userId"
                      :style="{top: cursor.top + 'px', left: cursor.left + 'px', backgroundColor: cursor.color}">
                     {{ cursor.username }}
@@ -424,50 +524,59 @@
     </div>
     <div class="status-bar">
         <span>文档ID: {{ doc.id }}</span>
-        <span :class="{saved: saved}">{{ savedStatus }}</span>
+        <span :class="{saved: saved, 'saving-indicator': !saved}">{{ savedStatus }}</span>
+        <span v-if="lastSaveTime" style="margin-left:auto;">上次保存: {{ lastSaveTime }}</span>
+    </div>
+
+    <div class="link-modal-overlay" v-if="linkModalVisible" @click.self="linkModalVisible = false">
+        <div class="link-modal">
+            <h4>插入链接</h4>
+            <input type="text" v-model="linkUrl" placeholder="请输入链接地址 (https://...)" @keyup.enter="confirmLink">
+            <div class="btn-row">
+                <button @click="linkModalVisible = false">取消</button>
+                <button class="primary" @click="confirmLink">确定</button>
+            </div>
+        </div>
     </div>
 
     <div class="modal-overlay" v-if="shareModal.visible" @click.self="closeShareModal">
         <div class="modal">
             <div class="modal-header">
-                <h3>{{ doc.title }}</h3>
+                <h3>分享与协作</h3>
                 <button class="modal-close" @click="closeShareModal">&times;</button>
             </div>
             <div class="modal-tabs">
                 <button class="modal-tab" :class="{active: shareModal.tab==='share'}" @click="shareModal.tab='share'">分享链接</button>
-                <button class="modal-tab" :class="{active: shareModal.tab==='collab'}" @click="shareModal.tab='collab';loadCollaborators()">协作者</button>
+                <button class="modal-tab" :class="{active: shareModal.tab==='collab'}" @click="shareModal.tab='collab'; loadCollaborators()">协作者</button>
             </div>
             <div class="modal-body">
                 <template v-if="shareModal.tab==='share'">
-                    <h4>创建新分享链接</h4>
+                    <h4>生成分享链接</h4>
                     <div class="form-row">
                         <div class="form-group">
                             <label>权限</label>
                             <select v-model="shareModal.newPerm">
                                 <option value="view">只读</option>
-                                <option value="editor">可编辑</option>
+                                <option value="edit">可编辑</option>
                             </select>
                         </div>
                         <div class="form-group">
-                            <label>有效期（小时，留空为永久）</label>
-                            <input type="number" v-model="shareModal.expireHours" placeholder="例如: 24" min="1">
+                            <label>有效期（小时，留空永久）</label>
+                            <input type="number" v-model="shareModal.expireHours" placeholder="如 24">
                         </div>
                     </div>
-                    <button class="btn-submit" @click="createShare">生成分享链接</button>
+                    <button class="btn-submit" @click="createShare">生成链接</button>
                     <div class="msg" :class="{'msg-error': shareModal.msgError}">{{ shareModal.msg }}</div>
-
-                    <h4 v-if="shareModal.shares.length" style="margin-top: 20px;">已有分享链接</h4>
-                    <div class="share-list">
-                        <div class="share-item" v-for="s in shareModal.shares" :key="s.id">
+                    <div class="share-list" v-if="shareModal.shares.length">
+                        <h4>已有链接</h4>
+                        <div class="share-item" v-for="s in shareModal.shares" :key="s.token">
                             <span class="link">{{ shareUrl(s.token) }}</span>
-                            <span class="meta">{{ s.permission === 'editor' ? '可编辑' : '只读' }}</span>
-                            <span class="meta" v-if="s.expireAt">到期 {{ formatTime(s.expireAt) }}</span>
+                            <span class="meta">{{ s.permission === 'view' ? '只读' : '可编辑' }}</span>
                             <button class="btn-copy" @click="copyLink(shareUrl(s.token))">复制</button>
                             <button class="btn-revoke" @click="revokeShare(s.token)">撤销</button>
                         </div>
                     </div>
                 </template>
-
                 <template v-if="shareModal.tab==='collab'">
                     <h4>添加协作者</h4>
                     <div class="form-row">
@@ -485,7 +594,6 @@
                     </div>
                     <button class="btn-submit" @click="addCollaborator">添加协作者</button>
                     <div class="msg" :class="{'msg-error': shareModal.collabMsgError}">{{ shareModal.collabMsg }}</div>
-
                     <h4 v-if="shareModal.collaborators.length" style="margin-top: 20px;">协作者列表</h4>
                     <div class="collaborator-list">
                         <div class="collab-item" v-for="c in shareModal.collaborators" :key="c.id">
@@ -510,11 +618,18 @@ createApp({
             doc: { id: 0, title: '', content: '', ownerName: '', version: 1, permission: '', createdAt: '', updatedAt: '' },
             content: '',
             saved: true,
+            isSaving: false,
+            lastSaveTime: '',
             saveTimer: null,
             panelOpen: false,
             isShareMode: false,
             shareToken: null,
             collaborators: [],
+            fontColor: '#000000',
+            bgColor: '#ffff00',
+            linkModalVisible: false,
+            linkUrl: '',
+            savedSelection: null,
             shareModal: {
                 visible: false,
                 tab: 'share',
@@ -581,7 +696,72 @@ createApp({
             location.href = '/index.html';
         }
     },
+    mounted() {
+        document.addEventListener('keydown', this.handleKeyboard);
+    },
+    beforeUnmount() {
+        document.removeEventListener('keydown', this.handleKeyboard);
+        if (this.stompClient) {
+            const docId = new URLSearchParams(location.search).get('id');
+            if (docId) {
+                this.stompClient.send('/app/doc/' + docId + '/leave', {}, JSON.stringify({}));
+            }
+            this.stompClient.disconnect();
+        }
+    },
     methods: {
+        handleKeyboard(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                this.manualSave();
+            }
+        },
+        execCmd(command, value) {
+            document.getElementById('editor').focus();
+            document.execCommand(command, false, value || null);
+            this.onContentChange();
+        },
+        execFontFamily(font) {
+            if (!font) return;
+            document.getElementById('editor').focus();
+            document.execCommand('fontName', false, font);
+            this.onContentChange();
+        },
+        execFontSize(size) {
+            if (!size) return;
+            document.getElementById('editor').focus();
+            document.execCommand('fontSize', false, size);
+            this.onContentChange();
+        },
+        insertLink() {
+            const sel = window.getSelection();
+            if (sel.rangeCount > 0) {
+                this.savedSelection = sel.getRangeAt(0).cloneRange();
+            }
+            this.linkUrl = '';
+            this.linkModalVisible = true;
+        },
+        confirmLink() {
+            if (!this.linkUrl.trim()) return;
+            this.linkModalVisible = false;
+            const editor = document.getElementById('editor');
+            editor.focus();
+            if (this.savedSelection) {
+                const sel = window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(this.savedSelection);
+            }
+            document.execCommand('createLink', false, this.linkUrl.trim());
+            this.onContentChange();
+        },
+        getEditorContent() {
+            const editor = document.getElementById('editor');
+            return editor ? editor.innerHTML : '';
+        },
+        getEditorText() {
+            const editor = document.getElementById('editor');
+            return editor ? (editor.innerText || editor.textContent) : '';
+        },
         async api(url, options = {}) {
             const headers = { ...(options.headers || {}) };
             const token = localStorage.getItem('token');
@@ -602,6 +782,10 @@ createApp({
             if (json && json.code === 200) {
                 this.doc = json.data;
                 this.content = json.data.content || '';
+                this.$nextTick(() => {
+                    const editor = document.getElementById('editor');
+                    if (editor) editor.innerHTML = this.content;
+                });
                 this.loadCollaboratorsForPanel();
             }
         },
@@ -610,6 +794,10 @@ createApp({
             if (json && json.code === 200) {
                 this.doc = json.data;
                 this.content = json.data.content || '';
+                this.$nextTick(() => {
+                    const editor = document.getElementById('editor');
+                    if (editor) editor.innerHTML = this.content;
+                });
                 this.doc.permission = json.data.permission || 'viewer';
             } else {
                 alert((json && json.message) || '分享链接无效或已过期');
@@ -626,28 +814,41 @@ createApp({
             if (!this.canEdit) return;
             this.saved = false;
             clearTimeout(this.saveTimer);
-
-            const newContent = this.content;
-            const oldContent = this.lastKnownContent || newContent;
-            this.lastKnownContent = newContent;
-
-            const ops = this.computeOps(oldContent, newContent);
-            this.pendingOps.push(...ops);
-
-            if (this.acknowledged && this.pendingOps.length > 0) {
-                this.sendPendingOps();
-            }
-
-            this.saveTimer = setTimeout(() => this.saveContent(), 1000);
+            this.saveTimer = setTimeout(() => this.saveContent(), 3000);
+        },
+        async manualSave() {
+            if (!this.canEdit || this.isSaving) return;
+            await this.saveContent();
         },
         async saveContent() {
-            this.saved = true;
+            if (this.isSaving) return;
+            this.isSaving = true;
+            try {
+                const htmlContent = this.getEditorContent();
+                const json = await this.api('/api/docs/' + this.doc.id, {
+                    method: 'PUT',
+                    body: { title: this.doc.title, content: htmlContent }
+                });
+                if (json && json.code === 200) {
+                    this.saved = true;
+                    this.doc.version = json.data.version || (this.doc.version + 1);
+                    const now = new Date();
+                    this.lastSaveTime = now.getHours().toString().padStart(2, '0') + ':' +
+                                       now.getMinutes().toString().padStart(2, '0') + ':' +
+                                       now.getSeconds().toString().padStart(2, '0');
+                }
+            } catch (e) {
+                console.error('Save failed:', e);
+            } finally {
+                this.isSaving = false;
+            }
         },
         async saveTitle() {
             if (!this.canEdit) return;
+            const htmlContent = this.getEditorContent();
             await this.api('/api/docs/' + this.doc.id, {
                 method: 'PUT',
-                body: { title: this.doc.title }
+                body: { title: this.doc.title, content: htmlContent }
             });
         },
         openShareModal() {
@@ -786,7 +987,6 @@ createApp({
                 { Authorization: 'Bearer ' + token },
                 (frame) => {
                     this.connected = true;
-                    console.log('WebSocket connected');
 
                     this.stompClient.subscribe('/topic/doc/' + docId, (message) => {
                         const event = JSON.parse(message.body);
@@ -817,23 +1017,28 @@ createApp({
                 this.sentOps = [];
                 this.acknowledged = true;
                 this.assignColorsToMembers();
+                this.$nextTick(() => {
+                    const editor = document.getElementById('editor');
+                    if (editor) editor.innerHTML = this.content;
+                });
             } else if (event.type === 'user_joined') {
                 this.members = this.members || [];
                 if (!this.members.find(m => m.userId === event.userId)) {
                     this.members.push({ userId: event.userId, username: event.username });
                 }
                 this.assignColorsToMembers();
-                console.log(event.username + ' joined');
             } else if (event.type === 'user_left') {
                 this.members = this.members || [];
                 this.members = this.members.filter(m => m.userId !== event.userId);
                 this.otherCursors = this.otherCursors.filter(c => c.userId !== event.userId);
-                console.log(event.username + ' left');
             } else if (event.type === 'operation') {
                 if (event.userId !== myUserId) {
-                    const ops = event.operations || [];
-                    this.content = this.applyOpsToContent(this.content, ops);
+                    this.content = event.content || this.content;
                     this.version = event.version;
+                    this.$nextTick(() => {
+                        const editor = document.getElementById('editor');
+                        if (editor) editor.innerHTML = this.content;
+                    });
                 }
             } else if (event.type === 'ack') {
                 this.acknowledged = true;
@@ -853,55 +1058,6 @@ createApp({
                 }
             }
         },
-        applyOpsToContent(docContent, ops) {
-            let pos = 0;
-            let result = '';
-            for (const op of ops) {
-                if (op.type === 'retain') {
-                    result += docContent.slice(pos, pos + op.count);
-                    pos += op.count;
-                } else if (op.type === 'insert') {
-                    result += op.text || '';
-                } else if (op.type === 'delete') {
-                    pos += op.count;
-                }
-            }
-            result += docContent.slice(pos);
-            return result;
-        },
-        computeOps(oldContent, newContent) {
-            const ops = [];
-            let i = 0, j = 0;
-            while (i < oldContent.length || j < newContent.length) {
-                if (j < newContent.length && (i >= oldContent.length || oldContent[i] !== newContent[j])) {
-                    let insertEnd = j;
-                    while (insertEnd < newContent.length && (insertEnd - j === 0 || newContent[insertEnd] !== newContent[insertEnd - 1] || insertEnd - j < 3)) {
-                        insertEnd++;
-                    }
-                    if (insertEnd > j) {
-                        ops.push({ type: 'insert', text: newContent.slice(j, insertEnd) });
-                        j = insertEnd;
-                    }
-                } else if (i < oldContent.length && (j >= newContent.length || oldContent[i] !== newContent[j])) {
-                    let deleteEnd = i;
-                    while (deleteEnd < oldContent.length && (deleteEnd - i === 0 || oldContent[deleteEnd] !== oldContent[deleteEnd - 1] || deleteEnd - i < 3)) {
-                        deleteEnd++;
-                    }
-                    if (deleteEnd > i) {
-                        ops.push({ type: 'delete', count: deleteEnd - i });
-                        i = deleteEnd;
-                    }
-                } else {
-                    const minLen = Math.min(oldContent.length - i, newContent.length - j);
-                    if (minLen > 0) {
-                        ops.push({ type: 'retain', count: minLen });
-                    }
-                    i += minLen;
-                    j += minLen;
-                }
-            }
-            return ops.length > 0 ? ops : [{ type: 'retain', count: oldContent.length }];
-        },
         sendPendingOps() {
             if (this.pendingOps.length === 0 || !this.connected) return;
             this.acknowledged = false;
@@ -920,14 +1076,20 @@ createApp({
             clearTimeout(this.cursorUpdateTimer);
             this.cursorUpdateTimer = setTimeout(() => {
                 if (!this.connected) return;
+                const sel = window.getSelection();
+                if (!sel || sel.rangeCount === 0) return;
+                const range = sel.getRangeAt(0);
+                const preRange = range.cloneRange();
                 const editor = document.getElementById('editor');
                 if (!editor) return;
-                const pos = editor.selectionStart;
+                preRange.selectNodeContents(editor);
+                preRange.setEnd(range.startContainer, range.startOffset);
+                const pos = preRange.toString().length;
+
                 const docId = this.doc.id || new URLSearchParams(location.search).get('id');
                 if (docId && this.stompClient) {
                     this.stompClient.send('/app/doc/' + docId + '/cursor', {}, JSON.stringify({
-                        cursorPosition: pos,
-                        cursorEnd: editor.selectionEnd
+                        cursorPosition: pos
                     }));
                 }
             }, 300);
@@ -935,18 +1097,18 @@ createApp({
         estimateCursorTop(pos) {
             const editor = document.getElementById('editor');
             if (!editor) return 0;
-            const lineHeight = 28.8;
-            const text = editor.value.substring(0, pos);
-            const lines = text.split('\n');
-            return (lines.length - 1) * lineHeight + 48;
+            const text = editor.innerText || editor.textContent || '';
+            const textBefore = text.substring(0, pos);
+            const lines = textBefore.split('\n');
+            return (lines.length - 1) * 28.8 + 48;
         },
         estimateCursorLeft(pos) {
             const editor = document.getElementById('editor');
             if (!editor) return 0;
-            const lineHeight = 28.8;
-            const text = editor.value.substring(0, pos);
-            const lastNewline = text.lastIndexOf('\n');
-            const lineText = lastNewline >= 0 ? text.substring(lastNewline + 1) : text;
+            const text = editor.innerText || editor.textContent || '';
+            const textBefore = text.substring(0, pos);
+            const lastNewline = textBefore.lastIndexOf('\n');
+            const lineText = lastNewline >= 0 ? textBefore.substring(lastNewline + 1) : textBefore;
             return Math.min(lineText.length * 9.6 + 56, 800);
         },
         assignColorsToMembers() {
@@ -964,15 +1126,6 @@ createApp({
                 const payload = JSON.parse(atob(token.split('.')[1]));
                 return payload.userId || payload.sub;
             } catch (e) { return null; }
-        },
-        beforeUnmount() {
-            if (this.stompClient) {
-                const docId = new URLSearchParams(location.search).get('id');
-                if (docId) {
-                    this.stompClient.send('/app/doc/' + docId + '/leave', {}, JSON.stringify({}));
-                }
-                this.stompClient.disconnect();
-            }
         }
     }
 }).mount('#app');

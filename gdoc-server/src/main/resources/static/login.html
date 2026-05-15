@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>登录 - 吉智文档 Gdoc</title>
     <script src="/js/vue.global.prod.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -58,32 +59,37 @@
             margin-bottom: 36px;
         }
         .logo-icon {
-            width: 64px;
-            height: 64px;
+            width: 72px;
+            height: 72px;
             background: linear-gradient(135deg, #1a73e8 0%, #4285f4 50%, #669df6 100%);
-            border-radius: 16px;
+            border-radius: 18px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            font-size: 32px;
-            color: #fff;
             margin-bottom: 18px;
             box-shadow: 
-                0 6px 16px rgba(26,115,232,0.35),
-                0 2px 6px rgba(26,115,232,0.2);
-            transition: transform 0.3s ease;
+                0 8px 24px rgba(26,115,232,0.35),
+                0 2px 8px rgba(26,115,232,0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
         .logo-icon:hover {
             transform: scale(1.05) rotate(2deg);
+            box-shadow: 
+                0 12px 32px rgba(26,115,232,0.4),
+                0 4px 12px rgba(26,115,232,0.25);
+        }
+        .logo-icon svg {
+            width: 36px;
+            height: 36px;
         }
         .logo-text {
-            font-size: 26px;
-            font-weight: 700;
+            font-family: 'Ma Shan Zheng', cursive;
+            font-size: 34px;
             background: linear-gradient(135deg, #1a73e8 0%, #4285f4 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            letter-spacing: 1.5px;
+            letter-spacing: 3px;
         }
         .logo-sub {
             font-size: 13px;
@@ -189,6 +195,18 @@
             border: 1px solid #f5c6cb;
             animation: shake 0.3s ease;
         }
+        .success {
+            background: linear-gradient(135deg, #e6f4ea 0%, #ceead6 100%);
+            color: #137333;
+            font-size: 14px;
+            padding: 14px 15px;
+            border-radius: 9px;
+            margin-bottom: 18px;
+            text-align: center;
+            border: 1px solid #a8dab5;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
         @keyframes shake {
             0%, 100% { transform: translateX(0); }
             25% { transform: translateX(-5px); }
@@ -208,7 +226,20 @@
 <div id="app">
     <div class="container">
         <div class="logo">
-            <div class="logo-icon">📄</div>
+            <div class="logo-icon">
+                <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="docGradLogin" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#e8f0fe;stop-opacity:1" />
+                        </linearGradient>
+                    </defs>
+                    <rect x="6" y="4" width="20" height="24" rx="3" fill="url(#docGradLogin)" opacity="0.95"/>
+                    <path d="M10 11h12M10 15h12M10 19h8" stroke="#4285f4" stroke-width="2" stroke-linecap="round"/>
+                    <circle cx="22" cy="22" r="6" fill="#4285f4"/>
+                    <path d="M20 22h4M22 20v4" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+            </div>
             <div class="logo-text">吉智文档</div>
             <div class="logo-sub">GDOC</div>
         </div>
@@ -217,10 +248,11 @@
             <div class="tab" :class="{active: mode==='register'}" @click="mode='register'">注册</div>
         </div>
         <div class="error" v-if="errorMsg">{{ errorMsg }}</div>
+        <div class="success" v-if="successMsg">{{ successMsg }}</div>
         <form @submit.prevent="submit">
-            <div class="form-group">
-                <label>用户名</label>
-                <input v-model="username" placeholder="请输入用户名" required>
+            <div class="form-group" v-if="mode==='login'">
+                <label>账号</label>
+                <input v-model="username" placeholder="请输入6位账号" required>
             </div>
             <div class="form-group">
                 <label>密码</label>
@@ -247,15 +279,19 @@ createApp({
             password: '',
             nickname: '',
             errorMsg: '',
+            successMsg: '',
             loading: false
         };
     },
     methods: {
         async submit() {
             this.errorMsg = '';
+            this.successMsg = '';
             this.loading = true;
             const url = this.mode === 'login' ? '/api/auth/login' : '/api/auth/register';
-            const body = { username: this.username, password: this.password };
+            const body = this.mode === 'login'
+                ? { username: this.username, password: this.password }
+                : { password: this.password };
             if (this.nickname) body.nickname = this.nickname;
             try {
                 const res = await fetch(url, {
@@ -270,11 +306,12 @@ createApp({
                         localStorage.setItem('user', JSON.stringify(json.data));
                         location.href = '/index.html';
                     } else {
+                        const assignedAccount = json.data.username;
                         this.mode = 'login';
-                        this.username = '';
+                        this.username = assignedAccount;
                         this.password = '';
                         this.nickname = '';
-                        alert('注册成功，请登录');
+                        this.successMsg = '注册成功！您的账号为 ' + assignedAccount + '，请牢记并登录';
                     }
                 } else {
                     this.errorMsg = json.message;

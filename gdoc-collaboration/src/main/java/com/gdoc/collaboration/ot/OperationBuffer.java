@@ -50,4 +50,16 @@ public class OperationBuffer {
     public int size() {
         return operations.size();
     }
+
+    public int getLength() {
+        int length = 0;
+        for (Operation op : operations) {
+            if (op.isRetain() || op.isInsert()) {
+                length += op.getCount();
+            } else if (op.isDelete()) {
+                length -= op.getCount();
+            }
+        }
+        return length;
+    }
 }

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>吉智文档 Gdoc</title>
     <script src="/js/vue.global.prod.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif; background: linear-gradient(135deg, #f0f6ff 0%, #e8f0fe 100%); min-height: 100vh; }
@@ -21,17 +22,40 @@
             top: 0;
             z-index: 100;
         }
-        .logo { font-size: 20px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 10px; }
-        .logo-icon { 
-            width: 36px; 
-            height: 36px; 
-            background: rgba(255,255,255,0.2); 
-            border-radius: 10px; 
-            display: inline-flex; 
-            align-items: center; 
-            justify-content: center; 
-            font-size: 20px;
-            backdrop-filter: blur(4px);
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .logo-icon-wrap {
+            width: 40px;
+            height: 40px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.25);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .logo:hover .logo-icon-wrap {
+            transform: rotate(-5deg) scale(1.05);
+            box-shadow: 0 4px 16px rgba(255,255,255,0.2);
+        }
+        .logo-icon-wrap svg {
+            width: 28px;
+            height: 28px;
+        }
+        .logo-text {
+            font-family: 'Ma Shan Zheng', cursive;
+            font-size: 26px;
+            color: #fff;
+            letter-spacing: 2px;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            line-height: 1;
         }
         .user-info { display: flex; align-items: center; gap: 16px; font-size: 14px; color: rgba(255,255,255,0.95); }
         .user-info button {
@@ -367,7 +391,23 @@
 <body>
 <div id="app">
     <div class="header">
-        <div class="logo"><span class="logo-icon">📄</span> 吉智文档</div>
+        <div class="logo">
+            <div class="logo-icon-wrap">
+                <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="docGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#e8f0fe;stop-opacity:1" />
+                        </linearGradient>
+                    </defs>
+                    <rect x="6" y="4" width="20" height="24" rx="3" fill="url(#docGrad)" opacity="0.95"/>
+                    <path d="M10 11h12M10 15h12M10 19h8" stroke="#4285f4" stroke-width="2" stroke-linecap="round"/>
+                    <circle cx="22" cy="22" r="6" fill="#4285f4"/>
+                    <path d="M20 22h4M22 20v4" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+            </div>
+            <span class="logo-text">吉智文档</span>
+        </div>
         <div class="user-info" v-if="user">
             <div class="user-avatar" @click="openAvatarModal" :title="user.nickname || user.username">
                 <img v-if="user.avatarUrl" :src="user.avatarUrl" alt="avatar">

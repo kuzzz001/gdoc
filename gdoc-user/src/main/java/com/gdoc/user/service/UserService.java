@@ -10,11 +10,15 @@ import com.gdoc.model.dto.UserVO;
 import com.gdoc.model.entity.GdocUser;
 import com.gdoc.security.util.JwtUtils;
 import com.gdoc.user.mapper.UserMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
 public class UserService {
+
+    private static final Logger log = LoggerFactory.getLogger(UserService.class);
 
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
@@ -26,20 +30,33 @@ public class UserService {
         this.jwtUtils = jwtUtils;
     }
 
-    public UserVO register(RegisterRequest request) {
-        boolean exists = userMapper.exists(new LambdaQueryWrapper<GdocUser>()
-                .eq(GdocUser::getUsername, request.getUsername()));
-        if (exists) {
-            throw new BusinessException(ResultCode.USERNAME_EXISTS);
-        }
+    public synchronized UserVO register(RegisterRequest request) {
+        String account = generateNextAccount();
 
         GdocUser user = new GdocUser();
-        user.setUsername(request.getUsername());
+        user.setUsername(account);
         user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setNickname(request.getNickname() != null ? request.getNickname() : request.getUsername());
+        user.setNickname(request.getNickname() != null ? request.getNickname() : "用户" + account);
         userMapper.insert(user);
 
+        log.info("新用户注册，分配账号: {}", account);
         return toVO(user);
+    }
+
+    private String generateNextAccount() {
+        Integer maxNo = userMapper.selectMaxAccountNo();
+        int nextNo = (maxNo == null) ? 1 : maxNo + 1;
+
+        for (int i = 0; i < 100; i++) {
+            String candidate = String.format("%06d", nextNo);
+            boolean exists = userMapper.exists(new LambdaQueryWrapper<GdocUser>()
+                    .eq(GdocUser::getUsername, candidate));
+            if (!exists) {
+                return candidate;
+            }
+            nextNo++;
+        }
+        throw new BusinessException(ResultCode.INTERNAL_ERROR);
     }
 
     public LoginResponse login(LoginRequest request) {
