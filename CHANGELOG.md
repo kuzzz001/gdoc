@@ -7,6 +7,56 @@
   - `y`：该 Phase 内的迭代序号（从 1 开始递增）
 - **正式发布阶段**：`1.p.q`（所有 Phase 完成后）
 
+> 当前版本：**v1.2.1** | 查看项目文档：[README.md](README.md)
+>
+> 前端工程化版本，完成从 CDN 引入到现代 SPA 架构的全面迁移。
+
+---
+
+## [1.2.1] — 2026-05-15
+
+### 前端工程化（SPA 架构）
+
+**Vite + Vue 3 + TypeScript**
+- 引入 Vite 8.0 作为构建工具，替代 CDN 引入方式
+- 使用 Vue 3 组合式 API（`<script setup>`）
+- 全面使用 TypeScript，所有业务类型定义完整
+- 路径别名 `@/` 配置，提升代码可读性
+
+**Vue Router 路由**
+- 实现前端路由：登录页 / 文档列表 / 编辑器 / 社交页 / 分享查看页
+- 路由守卫：未登录自动跳转登录页
+- 登录后自动重定向到目标页面
+
+**Pinia 状态管理**
+- `useUserStore`：用户认证、登录/注册/登出、Token 持久化
+- `useDocumentStore`：文档列表、创建/删除/获取、分页加载
+- `useSocialStore`：好友列表、消息、邀请、未读计数
+- `useCollabStore`：协同光标、在线用户管理
+
+**API 请求层**
+- Axios 封装：统一 baseURL、超时、请求头
+- 请求拦截器：自动附加 JWT Token
+- 响应拦截器：统一错误处理、401 自动跳转登录
+
+**组件化改造**
+- 通用组件：Avatar（头像）、Modal（弹窗）、Pagination（分页）
+- 编辑器组件：Toolbar（格式工具栏）、ImagePreview（图片预览）
+- 社交组件：FriendCard（好友卡片）、ChatList（聊天列表）、InvitationCard（邀请卡片）
+- 统一 CSS 变量系统（颜色、阴影、圆角、过渡）
+
+**页面实现**
+- Login.vue：登录/注册切换、表单验证
+- DocumentList.vue：文档卡片网格、创建/删除、分页
+- Editor.vue：富文本编辑器、标题编辑、分享弹窗、协作者管理
+- Social.vue：好友/申请/邀请三栏切换、聊天、用户搜索
+- ShareView.vue：分享链接查看（只读/可编辑）
+
+**构建与部署**
+- Vite 构建产物输出至 `gdoc-server/src/main/resources/static`
+- 开发模式支持 Vite Proxy 代理到后端 8080 端口
+- Spring Boot 自动服务前端静态资源
+
 ---
 
 ## [1.1.4] — 2026-05-14
