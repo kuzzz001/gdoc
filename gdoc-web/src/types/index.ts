@@ -122,3 +122,14 @@ export interface CursorState {
   top: number
   left: number
 }
+
+export interface Conversation {
+  id: number
+  userId: number
+  username: string
+  nickname: string
+  avatar: string
+  lastMessage: string
+  unreadCount: number
+  updatedAt: string
+}

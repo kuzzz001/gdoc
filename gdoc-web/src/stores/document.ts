@@ -36,5 +36,15 @@ export const useDocumentStore = defineStore('document', () => {
     return currentDoc.value
   }
 
-  return { documents, currentDoc, total, loading, fetchDocuments, createDocument, deleteDocument, fetchDocument }
+  async function updateDocument(id: number, data: { title?: string; content?: string }) {
+    const doc = await documentApi.update(id, data)
+    currentDoc.value = doc
+    const idx = documents.value.findIndex((d) => d.id === id)
+    if (idx !== -1) {
+      documents.value[idx] = doc
+    }
+    return doc
+  }
+
+  return { documents, currentDoc, total, loading, fetchDocuments, createDocument, deleteDocument, fetchDocument, updateDocument }
 })

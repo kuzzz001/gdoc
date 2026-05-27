@@ -107,3 +107,52 @@ CREATE INDEX IF NOT EXISTS idx_inviter ON gdoc_collab_invitation(inviter_id);
 CREATE INDEX IF NOT EXISTS idx_invitee ON gdoc_collab_invitation(invitee_id);
 CREATE INDEX IF NOT EXISTS idx_doc ON gdoc_collab_invitation(doc_id);
 CREATE INDEX IF NOT EXISTS idx_status ON gdoc_collab_invitation(status);
+
+-- ============ v1.3 新增 ============
+
+CREATE TABLE IF NOT EXISTS gdoc_folder (
+    id           BIGSERIAL    PRIMARY KEY,
+    name         VARCHAR(128) NOT NULL,
+    parent_id    BIGINT       DEFAULT 0,
+    owner_id     BIGINT       NOT NULL,
+    sort_order   INT          NOT NULL DEFAULT 0,
+    created_at   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_folder_owner ON gdoc_folder(owner_id);
+CREATE INDEX IF NOT EXISTS idx_folder_parent ON gdoc_folder(parent_id);
+
+CREATE TABLE IF NOT EXISTS gdoc_comment (
+    id           BIGSERIAL    PRIMARY KEY,
+    doc_id       BIGINT       NOT NULL,
+    user_id      BIGINT       NOT NULL,
+    content      TEXT         NOT NULL,
+    range_start  INT,
+    range_end    INT,
+    resolved     SMALLINT     NOT NULL DEFAULT 0,
+    created_at   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_comment_doc ON gdoc_comment(doc_id);
+CREATE INDEX IF NOT EXISTS idx_comment_user ON gdoc_comment(user_id);
+
+CREATE TABLE IF NOT EXISTS gdoc_comment_reply (
+    id           BIGSERIAL    PRIMARY KEY,
+    comment_id   BIGINT       NOT NULL,
+    user_id      BIGINT       NOT NULL,
+    content      TEXT         NOT NULL,
+    created_at   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_reply_comment ON gdoc_comment_reply(comment_id);
+
+CREATE TABLE IF NOT EXISTS gdoc_notification (
+    id           BIGSERIAL    PRIMARY KEY,
+    user_id      BIGINT       NOT NULL,
+    type         VARCHAR(32)  NOT NULL,
+    content      VARCHAR(512) NOT NULL,
+    related_id   BIGINT,
+    is_read      SMALLINT     NOT NULL DEFAULT 0,
+    created_at   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_notif_user_read ON gdoc_notification(user_id, is_read);
+CREATE INDEX IF NOT EXISTS idx_notif_created ON gdoc_notification(created_at);

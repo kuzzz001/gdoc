@@ -26,19 +26,16 @@
             {{ cursor.username.charAt(0) }}
           </span>
         </div>
+        <button class="btn-comment" @click="showComments = !showComments">评论</button>
         <button class="btn-share" @click="showShareModal = true">分享</button>
       </div>
     </header>
 
     <div class="editor-body">
-      <Toolbar @command="handleCommand" />
-      <div
-        ref="editorRef"
-        class="editor-content"
-        contenteditable="true"
-        @input="onInput"
-        @keydown="onKeyDown"
-      ></div>
+      <TipTapEditor ref="editorCompRef" :content="editorContent" @change="onContentChange" />
+      <div v-if="showComments" class="comment-sidebar">
+        <CommentPanel :doc-id="docId" />
+      </div>
     </div>
 
     <Modal v-model:visible="showShareModal" title="分享文档" size="lg">
@@ -85,7 +82,8 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import Toolbar from '@/components/editor/Toolbar.vue'
+import TipTapEditor from '@/components/editor/TipTapEditor.vue'
+import CommentPanel from '@/components/editor/CommentPanel.vue'
 import Modal from '@/components/common/Modal.vue'
 import Avatar from '@/components/common/Avatar.vue'
 import { useDocumentStore } from '@/stores/document'
@@ -102,7 +100,8 @@ const userStore = useUserStore()
 
 const docId = computed(() => Number(route.params.id))
 const docTitle = ref('未命名文档')
-const editorRef = ref<HTMLElement | null>(null)
+const editorCompRef = ref<InstanceType<typeof TipTapEditor> | null>(null)
+const editorContent = ref('')
 const saveStatus = ref('已保存')
 const editingTitle = ref(false)
 const titleInput = ref('')
@@ -112,6 +111,7 @@ const sharePermission = ref<'view' | 'edit'>('view')
 const collaborators = ref<Collaborator[]>([])
 const collabUserId = ref('')
 const collabRole = ref<'editor' | 'viewer'>('editor')
+const showComments = ref(false)
 
 let saveTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -119,9 +119,7 @@ onMounted(async () => {
   const doc = await docStore.fetchDocument(docId.value)
   if (doc) {
     docTitle.value = doc.title
-    if (editorRef.value) {
-      editorRef.value.innerHTML = doc.content || '<p><br></p>'
-    }
+    editorContent.value = doc.content || ''
   }
   loadCollaborators()
   connectWebSocket()
@@ -131,7 +129,7 @@ onUnmounted(() => {
   disconnectWebSocket()
 })
 
-function onInput() {
+function onContentChange() {
   saveStatus.value = '编辑中...'
   if (saveTimer) clearTimeout(saveTimer)
   saveTimer = setTimeout(() => {
@@ -140,24 +138,13 @@ function onInput() {
 }
 
 async function saveContent() {
-  if (!editorRef.value) return
-  const content = editorRef.value.innerHTML
+  if (!editorCompRef.value) return
+  const content = editorCompRef.value.getHTML()
   try {
-    await docStore.fetchDocument(docId.value)
+    await docStore.updateDocument(docId.value, { title: docTitle.value, content })
     saveStatus.value = '已保存'
   } catch {
     saveStatus.value = '保存失败'
-  }
-}
-
-function handleCommand() {
-  editorRef.value?.focus()
-}
-
-function onKeyDown(e: KeyboardEvent) {
-  if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-    e.preventDefault()
-    saveContent()
   }
 }
 
@@ -166,9 +153,14 @@ function startEditTitle() {
   titleInput.value = docTitle.value
 }
 
-function saveTitle() {
+async function saveTitle() {
   if (titleInput.value.trim()) {
     docTitle.value = titleInput.value.trim()
+    try {
+      await docStore.updateDocument(docId.value, { title: docTitle.value })
+    } catch {
+      console.error('保存标题失败')
+    }
   }
   editingTitle.value = false
 }
@@ -340,6 +332,29 @@ function disconnectWebSocket() {
   &:hover {
     background: var(--primary-hover);
   }
+}
+
+.btn-comment {
+  padding: 6px 16px;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  cursor: pointer;
+  transition: var(--transition);
+
+  &:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+}
+
+.comment-sidebar {
+  width: 320px;
+  border-left: 1px solid var(--border-color);
+  flex-shrink: 0;
+  overflow-y: auto;
 }
 
 .editor-body {

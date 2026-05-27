@@ -20,7 +20,6 @@ public class UserController {
     public UserController(UserService userService) {
         this.userService = userService;
     }
-
     @PostMapping("/auth/register")
     public ApiResponse<UserVO> register(@Valid @RequestBody RegisterRequest request) {
         UserVO user = userService.register(request);

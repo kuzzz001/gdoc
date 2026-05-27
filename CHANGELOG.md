@@ -7,9 +7,274 @@
   - `y`：该 Phase 内的迭代序号（从 1 开始递增）
 - **正式发布阶段**：`1.p.q`（所有 Phase 完成后）
 
-> 当前版本：**v1.2.1** | 查看项目文档：[README.md](README.md)
+> 当前版本：**v1.5.0** | 查看项目文档：[README.md](README.md)
 >
-> 前端工程化版本，完成从 CDN 引入到现代 SPA 架构的全面迁移。
+> 全面功能升级版本：富文本 OT、文档模板、数学公式、版本对比、团队群聊、阅读模式、RBAC、水印、SSO、CI/CD。
+
+---
+
+## [1.5.0] — 2026-05-27
+
+### 富文本 OT 引擎升级
+
+- **Delta 富文本 OT**：升级纯文本 OT 为支持 attributes 的富文本 OT
+  - Delta 类：INSERT/DELETE/RETAIN + attributes（格式信息）
+  - Delta.transform：带 priority 参数的富文本冲突解决
+  - Delta.compose：合并连续操作
+  - Delta.fromJson / Delta.toJson：序列化支持
+- **OTServer 文档房间模型**：服务端 OT 引擎
+  - DocumentRoom：文档房间（内容、版本历史、在线用户）
+  - applyDelta：客户端操作 transform + 应用 + 版本递增
+  - SelectionState：协作者选区/光标同步
+- **Selection 同步**：SelectionState + transformPosition 光标位置跟随
+
+### 文档模板系统
+
+- **数据库**：`gdoc_template` 表（name、description、content、category、owner_id、is_public）
+- **后端**：TemplateMapper + TemplateService + TemplateController
+  - 模板 CRUD：创建、列表（个人+公开）、查询、删除
+  - 分类筛选、公开/私有模板
+- **前端**：TemplatePicker 组件
+  - 分类标签筛选、模板卡片预览、选择创建文档
+  - templateApi 接口层
+
+### 数学公式支持
+
+- **TipTap Mathematics 扩展**：集成 KaTeX 渲染引擎
+  - 工具栏 fx 按钮插入公式
+  - LaTeX 语法输入（如 `E = mc^2`）
+  - 行内/块级公式渲染
+
+### 版本对比与命名
+
+- **数据库**：`gdoc_document_version` 表（doc_id、content、version_number、version_name、created_by）
+- **后端**：DocumentVersionMapper + VersionService + VersionController
+  - 版本创建（自动编号 + 自定义命名）
+  - 版本列表、查询、重命名
+- **前端**：VersionDiff 组件
+  - 双栏对比（左旧右新）
+  - 版本选择下拉框
+  - 差异高亮（删除线/绿色背景）
+  - versionApi 接口层
+
+### 社交功能增强
+
+- **团队/组织**
+  - 数据库：`gdoc_team` + `gdoc_team_member` 表
+  - 后端：TeamService + TeamController（创建/列表/成员管理/删除）
+  - 前端：teamApi 接口层
+- **群聊功能**
+  - 数据库：`gdoc_group_chat` + `gdoc_group_member` + `gdoc_group_message` 表
+  - 后端：GroupChatService + GroupChatController（创建/列表/成员/消息发送/消息查询）
+  - 前端：GroupChatPanel 组件 + groupApi 接口层
+
+### UX 优化
+
+- **阅读模式**：ReadingMode 组件
+  - 字体大小调节（12px-28px）
+  - 内容宽度切换（窄/中/宽）
+  - 沉浸式全屏阅读
+- **字数统计**：WordCount 组件（字数/字符数/段落数实时统计）
+- **评论面板集成**：Editor.vue 集成 CommentPanel 侧边栏
+- **PWA 支持**：manifest.json 配置，可安装到桌面
+
+### 企业级功能
+
+- **RBAC 权限模型**：RbacService（admin/editor/viewer 三级权限）
+  - admin：全权限 + 用户管理 + 团队管理
+  - editor：文档编辑 + 评论 + 版本
+  - viewer：只读 + 导出
+- **水印**：Watermark 组件 + WatermarkFilter
+  - 前端水印覆盖层（自定义文字、透明度、旋转角度）
+  - 后端响应头水印标记
+- **SSO 登录**：SsoFilter（Header-based SSO，可配置 Header 名称）
+
+### 测试与 CI/CD
+
+- **CI 流水线**：GitHub Actions 配置
+  - 后端：JDK 17 + Maven 构建 + 测试
+  - 前端：Node.js 20 + npm 构建 + Lint
+  - Docker：多阶段构建 + 推送镜像
+- **单元测试**：DocumentServiceTest + DeltaTest
+
+### 安全加固
+
+- gdoc-common 新增 spring-boot-starter-security 依赖
+
+---
+
+## [1.4.0] — 2026-05-27
+
+### 文档组织管理 UI
+
+- **文件夹树 UI**：FolderTree 组件
+  - 树形文件夹展示、创建、重命名、删除
+  - 文件夹选择筛选文档列表
+  - 回收站视图入口
+- **标签系统 UI**：DocumentList 标签栏
+  - 标签筛选、清除筛选
+  - TagService + TagController 后端支持
+  - `gdoc_tag` + `gdoc_document_tag` 数据库表
+- **搜索功能**：MySQL 全文索引搜索
+  - searchApi 接口层
+  - FULLTEXT INDEX `ft_title_content`
+- **回收站**：RecycleBinService + 回收站 UI
+  - 文档恢复、永久删除、清空回收站
+  - 回收站视图（恢复按钮 + 永久删除按钮）
+
+### 文档导入导出
+
+- **后端**：ExportService + ExportImportController
+  - 导出 PDF（Flying Saucer / iText）
+  - 导出 Word（Apache POI）
+  - 导出 Markdown（HTML → MD 转换）
+  - 导入 Markdown（MD → 文档内容）
+- **前端**：导入导出按钮 + searchApi 扩展
+
+### 评论面板
+
+- **CommentPanel 组件**：Editor 侧边评论面板
+  - 评论列表（全部/未解决/已解决筛选）
+  - 新增评论、回复评论
+  - 标记已解决/重新打开、删除评论
+  - Avatar 头像集成
+- **Editor.vue 集成**：评论按钮 + 评论侧边栏
+
+### 通知中心
+
+- **NotificationCenter 组件**：通知列表 + 未读红点
+  - 通知查询、标记已读、全部已读
+  - notificationApi 接口层
+
+### 安全加固
+
+- **XSS 过滤**：XssFilter（富文本内容 XSS 过滤）
+- **限流**：RateLimitFilter（API 请求限流）
+- **健康检查**：HealthCheck + spring-boot-starter-actuator
+- **CORS 配置**：跨域请求安全配置
+
+---
+
+## [1.3.0] — 2026-05-27
+
+### 编辑器引擎升级
+
+- **TipTap 编辑器迁移**：替换 contenteditable + execCommand
+  - 引入 TipTap 2.x + Vue 3 绑定
+  - 创建 `TipTapEditor` 组件（/src/components/editor/TipTapEditor.vue）
+  - Node 类型：标题（h1-h3）、段落、引用、代码块、有序/无序列表、图片、分割线、表格
+  - Mark 类型：粗体、斜体、下划线、删除线、行内代码、链接、高亮
+  - 代码块语法高亮：CodeBlockLowlight + lowlight（15+ 语言）
+  - 表格编辑器：Table/TableRow/TableCell/TableHeader 扩展
+  - 占位符提示文本
+  - 撤销/重做（History Extension 内置）
+
+### 文件夹系统
+
+- **数据库**：`gdoc_folder` 表（MySQL + PostgreSQL 双支持）
+- **后端**：FolderMapper + FolderService + FolderController
+  - 多级文件夹 CRUD：创建、列表（树形结构）、重命名、删除
+  - 删除文件夹时子文件夹自动移至根目录
+  - 认证集成（Authentication 参数注入）
+- **前端**：folderApi 接口层（/src/api/folder.ts）
+
+### 评论系统
+
+- **数据库**：`gdoc_comment` + `gdoc_comment_reply` 表
+  - 范围评论：支持 range_start/range_end 标记选区
+  - 已解决/未解决状态切换
+- **后端**：CommentMapper + CommentReplyMapper + CommentService + CommentController
+  - 评论 CRUD + 回复 + 解决状态管理
+  - 用户昵称关联查询
+- **前端**：commentApi 接口层（/src/api/comment.ts）
+
+### 通知系统
+
+- **数据库**：`gdoc_notification` 表
+  - 类型：collab_invite / comment / doc_shared / mention
+  - 已读/未读状态 + 未读计数
+- **后端**：NotificationMapper + NotificationService + NotificationController
+  - 发送通知、列表查询、标记已读、全部已读、未读计数
+- **前端**：notificationApi 接口层（/src/api/notification.ts）
+
+### 后端架构升级
+
+- **日志切面** `LoggingAspect`：自动记录所有 Controller 的入参/出参/耗时
+  - `@Around` 拦截 `@RestController` / `@Controller`
+  - 输出：`>>> GET /api/docs -> ClassName.methodName(args)` + `<<< GET /api/docs <- 12ms`
+- **分页响应模型** `PageResult<T>`：统一分页数据封装（records/total/page/size/pages）
+- **AOP 依赖**：gdoc-common 新增 `spring-boot-starter-aop`
+
+### 代码质量
+
+- 前端 CSS 变量统一：新增 `--text-on-primary` 变量
+- 修复 gdoc-social/pom.xml 中 `<dependency>` 标签截断错误
+
+---
+
+## [1.2.2] — 2026-05-18
+
+### 组件库完善
+
+**新增组件**
+- `MessageBubble` 消息气泡组件
+  - 支持文本/图片/文件/系统消息四种类型
+  - 区分自己/他人消息（左右布局、不同配色）
+  - 显示发送者头像、昵称、时间
+  - 消息状态指示（已发送/已送达/已读）
+  - 图片消息支持点击预览
+- `CodeBlock` 代码块组件
+  - 支持 15+ 种编程语言语法高亮
+  - 代码复制功能（一键复制到剪贴板）
+  - 行号显示
+  - 超长代码自动折叠/展开
+  - 暗色主题适配
+
+**组件文档系统**
+- 新增 `/components` 组件文档页面
+- 分类展示：通用组件 / 编辑器组件 / 社交组件 / 主题系统
+- 每个组件包含：描述、实时预览、代码示例
+- 支持暗黑模式切换预览
+
+### 暗黑模式支持
+
+**主题系统**
+- 新增 `useThemeStore` 主题状态管理
+- 支持三种模式：亮色 / 暗色 / 跟随系统
+- 主题持久化到 localStorage
+- 实时响应系统主题变化
+
+**CSS 变量系统**
+- 完整的设计变量体系：
+  - 颜色：primary、success、warning、danger
+  - 文本：primary、secondary、placeholder、disabled
+  - 背景：primary、secondary、tertiary
+  - 边框、圆角、阴影、过渡
+- 亮色/暗色主题变量自动切换
+- `[data-theme='dark']` 手动切换
+- `@media (prefers-color-scheme: dark)` 系统跟随
+
+**ThemeToggle 组件**
+- 主题切换按钮组件
+- 三态切换：☀️ 亮色 → 🌙 暗色 → 💻 系统
+- 显示当前主题状态
+
+### Bug 修复
+
+- 修复文档保存功能：`saveContent` 错误调用 `fetchDocument` 而非 `updateDocument`
+- 修复标题保存功能：编辑标题后正确调用 API 保存
+
+### 其他改进
+
+- 新增 `Conversation` 类型定义
+- 路由新增 `/components` 页面
+- CSS 变量系统完善，统一设计语言
+
+### 文档建设
+
+- **需求文档** [REQUIREMENTS.md](REQUIREMENTS.md)：产品定位、用户角色、功能需求（FR-001 ~ FR-020）、非功能需求、数据需求、约束假设、版本规划
+- **设计文档** [DESIGN.md](DESIGN.md)：系统架构图、前后端架构设计、数据库 ER 图与索引策略、9 大模块详细设计（含 OT 算法、WebSocket 消息流、权限模型、CSS 变量系统等）、接口序列图、安全设计、部署设计
+- **测试文档** [TESTING.md](TESTING.md)：测试金字塔与策略、OT 引擎 17 个单元测试详解与 6 个计划测试、前后端组件/页面测试清单、API 集成测试计划（27 个用例）、E2E 用户旅程 4 条与回归测试 15 项、测试规范与常见问题排查
 
 ---
 

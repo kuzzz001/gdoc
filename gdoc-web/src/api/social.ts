@@ -1,27 +1,59 @@
 import request from './request'
-import type { Friend, FriendRequest, Message, CollabInvitation, User } from '@/types'
 
-export const socialApi = {
-  searchUsers: (keyword: string) => request.get<any, User[]>('/social/users/search', { params: { keyword } }),
-  sendFriendRequest: (userId: number) => request.post<any, void>('/social/friends/request', { userId }),
-  handleFriendRequest: (id: number, action: 'accept' | 'reject') =>
-    request.put<any, void>(`/social/friends/request/${id}`, { action }),
-  getFriends: () => request.get<any, Friend[]>('/social/friends'),
-  deleteFriend: (userId: number) => request.delete<any, void>(`/social/friends/${userId}`),
-  getPendingRequests: () => request.get<any, FriendRequest[]>('/social/friends/requests/pending'),
+export interface Team {
+  id: number
+  name: string
+  description: string
+  avatarUrl: string
+  ownerId: number
+  role?: string
 }
 
-export const messageApi = {
-  getHistory: (friendId: number) => request.get<any, Message[]>(`/social/message/${friendId}`),
-  getUnreadCount: () => request.get<any, number>('/social/message/unread'),
-  markRead: (friendId: number) => request.put<any, void>(`/social/message/${friendId}/read`),
+export interface TeamMember {
+  userId: number
+  username: string
+  nickname: string
+  avatar: string
+  role: string
 }
 
-export const invitationApi = {
-  send: (data: { friendId: number; documentId: number; permission: 'editor' | 'viewer'; message?: string }) =>
-    request.post<any, CollabInvitation>('/social/invitations', data),
-  list: () => request.get<any, CollabInvitation[]>('/social/invitations'),
-  handle: (id: number, action: 'accept' | 'reject') =>
-    request.put<any, void>(`/social/invitations/${id}`, { action }),
-  cancel: (id: number) => request.delete<any, void>(`/social/invitations/${id}`),
+export const teamApi = {
+  list: () => request.get<Team[]>('/teams'),
+  create: (data: { name: string; description?: string }) => request.post<Team>('/teams', data),
+  addMember: (teamId: number, userId: number, role?: string) =>
+    request.post(`/teams/${teamId}/members`, { userId, role }),
+  removeMember: (teamId: number, userId: number) =>
+    request.delete(`/teams/${teamId}/members/${userId}`),
+  listMembers: (teamId: number) => request.get<TeamMember[]>(`/teams/${teamId}/members`),
+  delete: (teamId: number) => request.delete(`/teams/${teamId}`),
+}
+
+export interface GroupChat {
+  id: number
+  name: string
+  avatarUrl: string
+  ownerId: number
+  role?: string
+}
+
+export interface GroupMessage {
+  id: number
+  groupId: number
+  senderId: number
+  content: string
+  msgType: string
+  createdAt: string
+}
+
+export const groupApi = {
+  list: () => request.get<GroupChat[]>('/groups'),
+  create: (data: { name: string }) => request.post<GroupChat>('/groups', data),
+  addMember: (groupId: number, userId: number) =>
+    request.post(`/groups/${groupId}/members`, { userId }),
+  removeMember: (groupId: number, userId: number) =>
+    request.delete(`/groups/${groupId}/members/${userId}`),
+  sendMessage: (groupId: number, content: string) =>
+    request.post(`/groups/${groupId}/messages`, { content }),
+  getMessages: (groupId: number, limit?: number) =>
+    request.get<GroupMessage[]>(`/groups/${groupId}/messages`, { params: { limit } }),
 }

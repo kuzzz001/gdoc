@@ -31,6 +31,12 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/ShareView.vue'),
     meta: { requiresAuth: false },
   },
+  {
+    path: '/components',
+    name: 'Components',
+    component: () => import('@/views/Components.vue'),
+    meta: { requiresAuth: false },
+  },
 ]
 
 export default routes

@@ -107,3 +107,155 @@ CREATE TABLE IF NOT EXISTS `gdoc_collab_invitation` (
     INDEX `idx_doc` (`doc_id`),
     INDEX `idx_status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============ v1.3 新增 ============
+
+CREATE TABLE IF NOT EXISTS `gdoc_folder` (
+    `id`           BIGINT       PRIMARY KEY AUTO_INCREMENT,
+    `name`         VARCHAR(128) NOT NULL,
+    `parent_id`    BIGINT       DEFAULT 0 COMMENT '父文件夹ID，0表示根目录',
+    `owner_id`     BIGINT       NOT NULL,
+    `sort_order`   INT          NOT NULL DEFAULT 0,
+    `created_at`   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX `idx_owner` (`owner_id`),
+    INDEX `idx_parent` (`parent_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `gdoc_comment` (
+    `id`           BIGINT       PRIMARY KEY AUTO_INCREMENT,
+    `doc_id`       BIGINT       NOT NULL,
+    `user_id`      BIGINT       NOT NULL,
+    `content`      TEXT         NOT NULL,
+    `range_start`  INT          COMMENT '选区起始位置',
+    `range_end`    INT          COMMENT '选区结束位置',
+    `resolved`     TINYINT      NOT NULL DEFAULT 0 COMMENT '0-未解决 1-已解决',
+    `created_at`   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX `idx_doc_id` (`doc_id`),
+    INDEX `idx_user_id` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `gdoc_comment_reply` (
+    `id`           BIGINT       PRIMARY KEY AUTO_INCREMENT,
+    `comment_id`   BIGINT       NOT NULL,
+    `user_id`      BIGINT       NOT NULL,
+    `content`      TEXT         NOT NULL,
+    `created_at`   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX `idx_comment_id` (`comment_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `gdoc_notification` (
+    `id`           BIGINT       PRIMARY KEY AUTO_INCREMENT,
+    `user_id`      BIGINT       NOT NULL,
+    `type`         VARCHAR(32)  NOT NULL COMMENT 'collab_invite/comment/doc_shared/mention',
+    `content`      VARCHAR(512) NOT NULL,
+    `related_id`   BIGINT       COMMENT '关联ID（文档/评论等）',
+    `is_read`      TINYINT      NOT NULL DEFAULT 0 COMMENT '0-未读 1-已读',
+    `created_at`   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX `idx_user_read` (`user_id`, `is_read`),
+    INDEX `idx_created` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============ v1.4 新增 ============
+
+CREATE TABLE IF NOT EXISTS `gdoc_tag` (
+    `id`           BIGINT       PRIMARY KEY AUTO_INCREMENT,
+    `name`         VARCHAR(64)  NOT NULL,
+    `owner_id`     BIGINT       NOT NULL,
+    `created_at`   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY `uk_owner_name` (`owner_id`, `name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `gdoc_document_tag` (
+    `id`           BIGINT       PRIMARY KEY AUTO_INCREMENT,
+    `doc_id`       BIGINT       NOT NULL,
+    `tag_id`       BIGINT       NOT NULL,
+    `created_at`   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY `uk_doc_tag` (`doc_id`, `tag_id`),
+    INDEX `idx_tag_id` (`tag_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Add FULLTEXT index for search
+ALTER TABLE `gdoc_document` ADD FULLTEXT INDEX `ft_title_content` (`title`, `content`) WITH PARSER ngram;
+
+-- ============ v1.5 新增 ============
+
+CREATE TABLE IF NOT EXISTS `gdoc_template` (
+    `id`           BIGINT       PRIMARY KEY AUTO_INCREMENT,
+    `name`         VARCHAR(128) NOT NULL,
+    `description`  VARCHAR(512),
+    `content`      LONGTEXT     COMMENT '模板内容HTML',
+    `category`     VARCHAR(64)  COMMENT '模板分类',
+    `owner_id`     BIGINT       NOT NULL,
+    `is_public`    TINYINT      NOT NULL DEFAULT 0 COMMENT '0-私有 1-公开',
+    `created_at`   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX `idx_owner` (`owner_id`),
+    INDEX `idx_public` (`is_public`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `gdoc_team` (
+    `id`           BIGINT       PRIMARY KEY AUTO_INCREMENT,
+    `name`         VARCHAR(128) NOT NULL,
+    `description`  VARCHAR(512),
+    `avatar_url`   VARCHAR(512),
+    `owner_id`     BIGINT       NOT NULL,
+    `created_at`   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX `idx_owner` (`owner_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `gdoc_team_member` (
+    `id`           BIGINT       PRIMARY KEY AUTO_INCREMENT,
+    `team_id`      BIGINT       NOT NULL,
+    `user_id`      BIGINT       NOT NULL,
+    `role`         VARCHAR(16)  NOT NULL DEFAULT 'member' COMMENT 'admin/member',
+    `created_at`   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY `uk_team_user` (`team_id`, `user_id`),
+    INDEX `idx_user` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `gdoc_group_chat` (
+    `id`           BIGINT       PRIMARY KEY AUTO_INCREMENT,
+    `name`         VARCHAR(128) NOT NULL,
+    `avatar_url`   VARCHAR(512),
+    `owner_id`     BIGINT       NOT NULL,
+    `created_at`   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX `idx_owner` (`owner_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `gdoc_group_member` (
+    `id`           BIGINT       PRIMARY KEY AUTO_INCREMENT,
+    `group_id`     BIGINT       NOT NULL,
+    `user_id`      BIGINT       NOT NULL,
+    `role`         VARCHAR(16)  NOT NULL DEFAULT 'member' COMMENT 'admin/member',
+    `joined_at`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY `uk_group_user` (`group_id`, `user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `gdoc_group_message` (
+    `id`           BIGINT       PRIMARY KEY AUTO_INCREMENT,
+    `group_id`     BIGINT       NOT NULL,
+    `sender_id`    BIGINT       NOT NULL,
+    `content`      TEXT         NOT NULL,
+    `msg_type`     VARCHAR(16)  NOT NULL DEFAULT 'text',
+    `created_at`   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX `idx_group` (`group_id`),
+    INDEX `idx_created` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `gdoc_document_version` (
+    `id`              BIGINT       PRIMARY KEY AUTO_INCREMENT,
+    `doc_id`          BIGINT       NOT NULL,
+    `content`         LONGTEXT,
+    `version_number`  INT          NOT NULL,
+    `version_name`    VARCHAR(128),
+    `created_by`      BIGINT,
+    `created_at`      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX `idx_doc` (`doc_id`),
+    UNIQUE KEY `uk_doc_version` (`doc_id`, `version_number`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
