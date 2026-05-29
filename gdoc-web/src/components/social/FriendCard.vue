@@ -1,6 +1,6 @@
 <template>
   <div class="friend-card" @click="$emit('click', friend)">
-    <Avatar :text="friend.nickname || friend.username" :src="friend.avatar" size="md" />
+    <Avatar :text="friend.nickname || friend.username" :src="friend.avatarUrl" size="md" />
     <div class="friend-info">
       <div class="friend-name">{{ friend.nickname || friend.username }}</div>
       <div class="friend-username">@{{ friend.username }}</div>

@@ -7,13 +7,17 @@ import com.gdoc.model.dto.*;
 import com.gdoc.security.annotation.DocPermission;
 import com.gdoc.security.annotation.RequirePermission;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import org.springframework.security.core.Authentication;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/docs")
+@Validated
 public class DocumentController {
 
     private final DocumentService documentService;
@@ -32,8 +36,8 @@ public class DocumentController {
 
     @GetMapping
     public ApiResponse<IPage<DocumentVO>> list(
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "1") @Min(1) int page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
             Authentication authentication) {
         Long userId = (Long) authentication.getPrincipal();
         IPage<DocumentVO> docPage = documentService.list(userId, page, size);

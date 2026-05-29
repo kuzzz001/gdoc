@@ -33,7 +33,7 @@ public class SecurityConfig {
                         .requestMatchers("/static/**", "/css/**", "/js/**", "/images/**", "/assets/**", "/@vite/**").permitAll()
                         .requestMatchers("/*.js", "/*.css", "/*.html", "/*.ico", "/*.png", "/*.svg").permitAll()
                         .requestMatchers("/uploads/**", "/avatars/**").permitAll()
-                        .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
+                        .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/logout").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/docs/share/**").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/doc.html", "/webjars/**").permitAll()
                         .requestMatchers("/ws/**").permitAll()

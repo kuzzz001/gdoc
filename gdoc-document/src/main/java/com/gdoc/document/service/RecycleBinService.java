@@ -1,6 +1,5 @@
 package com.gdoc.document.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.gdoc.document.mapper.DocumentMapper;
@@ -20,12 +19,8 @@ public class RecycleBinService {
 
     public IPage<DocumentVO> listDeleted(Long userId, int pageNum, int pageSize) {
         Page<GdocDocument> page = new Page<>(pageNum, pageSize);
-        LambdaQueryWrapper<GdocDocument> wrapper = new LambdaQueryWrapper<GdocDocument>()
-                .eq(GdocDocument::getOwnerId, userId)
-                .eq(GdocDocument::getDeleted, 1)
-                .orderByDesc(GdocDocument::getUpdatedAt);
-
-        IPage<GdocDocument> docPage = documentMapper.selectPage(page, wrapper);
+        // Use raw SQL to bypass @TableLogic auto-filter which adds deleted=0
+        IPage<GdocDocument> docPage = documentMapper.selectDeletedDocs(page, userId);
         return docPage.convert(doc -> {
             DocumentVO vo = new DocumentVO();
             vo.setId(doc.getId());
@@ -41,30 +36,29 @@ public class RecycleBinService {
 
     @Transactional
     public void restore(Long docId, Long userId) {
-        GdocDocument doc = documentMapper.selectById(docId);
+        GdocDocument doc = documentMapper.selectDeletedById(docId);
         if (doc == null || !doc.getOwnerId().equals(userId)) {
             throw new com.gdoc.common.exception.BusinessException(
                     com.gdoc.common.result.ResultCode.DOC_NOT_FOUND);
         }
-        doc.setDeleted(0);
-        documentMapper.updateById(doc);
+        // Use raw SQL to bypass @TableLogic which would block update on deleted=1 rows
+        documentMapper.restoreDeletedDoc(docId);
     }
 
     @Transactional
     public void permanentDelete(Long docId, Long userId) {
-        GdocDocument doc = documentMapper.selectById(docId);
+        GdocDocument doc = documentMapper.selectDeletedById(docId);
         if (doc == null || !doc.getOwnerId().equals(userId)) {
             throw new com.gdoc.common.exception.BusinessException(
                     com.gdoc.common.result.ResultCode.DOC_NOT_FOUND);
         }
-        documentMapper.deleteById(docId);
+        // Use raw SQL to bypass @TableLogic which blocks delete on already-deleted rows
+        documentMapper.physicalDeleteDoc(docId);
     }
 
     @Transactional
     public void emptyBin(Long userId) {
-        LambdaQueryWrapper<GdocDocument> wrapper = new LambdaQueryWrapper<GdocDocument>()
-                .eq(GdocDocument::getOwnerId, userId)
-                .eq(GdocDocument::getDeleted, 1);
-        documentMapper.delete(wrapper);
+        // Use raw SQL to bypass @TableLogic
+        documentMapper.physicalDeleteAllDeleted(userId);
     }
 }

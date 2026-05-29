@@ -2,7 +2,8 @@ export interface User {
   id: number
   username: string
   nickname: string
-  avatar: string
+  email: string
+  avatarUrl: string
   accountNo: string
 }
 
@@ -71,7 +72,7 @@ export interface Friend {
   userId: number
   username: string
   nickname: string
-  avatar: string
+  avatarUrl: string
   unreadCount: number
 }
 

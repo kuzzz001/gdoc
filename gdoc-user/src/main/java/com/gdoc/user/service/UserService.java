@@ -15,6 +15,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.concurrent.locks.ReentrantLock;
+
 @Service
 public class UserService {
 
@@ -23,6 +25,7 @@ public class UserService {
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtils jwtUtils;
+    private final ReentrantLock accountLock = new ReentrantLock();
 
     public UserService(UserMapper userMapper, PasswordEncoder passwordEncoder, JwtUtils jwtUtils) {
         this.userMapper = userMapper;
@@ -30,33 +33,42 @@ public class UserService {
         this.jwtUtils = jwtUtils;
     }
 
-    public synchronized UserVO register(RegisterRequest request) {
+    public LoginResponse register(RegisterRequest request) {
         String account = generateNextAccount();
+        String encodedPassword = passwordEncoder.encode(request.getPassword());
 
         GdocUser user = new GdocUser();
         user.setUsername(account);
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setPassword(encodedPassword);
         user.setNickname(request.getNickname() != null ? request.getNickname() : "用户" + account);
         userMapper.insert(user);
 
         log.info("新用户注册，分配账号: {}", account);
-        return toVO(user);
+
+        String token = jwtUtils.generateToken(user.getId(), user.getUsername());
+        UserVO userVO = toVO(user);
+        return new LoginResponse(token, userVO);
     }
 
     private String generateNextAccount() {
-        Integer maxNo = userMapper.selectMaxAccountNo();
-        int nextNo = (maxNo == null) ? 1 : maxNo + 1;
+        accountLock.lock();
+        try {
+            Integer maxNo = userMapper.selectMaxAccountNo();
+            int nextNo = (maxNo == null) ? 1 : maxNo + 1;
 
-        for (int i = 0; i < 100; i++) {
-            String candidate = String.format("%06d", nextNo);
-            boolean exists = userMapper.exists(new LambdaQueryWrapper<GdocUser>()
-                    .eq(GdocUser::getUsername, candidate));
-            if (!exists) {
-                return candidate;
+            for (int i = 0; i < 100; i++) {
+                String candidate = String.format("%06d", nextNo);
+                boolean exists = userMapper.exists(new LambdaQueryWrapper<GdocUser>()
+                        .eq(GdocUser::getUsername, candidate));
+                if (!exists) {
+                    return candidate;
+                }
+                nextNo++;
             }
-            nextNo++;
+            throw new BusinessException(ResultCode.INTERNAL_ERROR);
+        } finally {
+            accountLock.unlock();
         }
-        throw new BusinessException(ResultCode.INTERNAL_ERROR);
     }
 
     public LoginResponse login(LoginRequest request) {
@@ -71,7 +83,8 @@ public class UserService {
         }
 
         String token = jwtUtils.generateToken(user.getId(), user.getUsername());
-        return new LoginResponse(token, user.getId(), user.getUsername(), user.getNickname(), user.getAvatarUrl());
+        UserVO userVO = toVO(user);
+        return new LoginResponse(token, userVO);
     }
 
     public UserVO getMe(Long userId) {
@@ -99,6 +112,7 @@ public class UserService {
         vo.setNickname(user.getNickname());
         vo.setEmail(user.getEmail());
         vo.setAvatarUrl(user.getAvatarUrl());
+        vo.setAccountNo(user.getUsername());
         return vo;
     }
 }

@@ -6,10 +6,10 @@ services:
     container_name: gdoc-mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123}
       MYSQL_DATABASE: gdoc
       MYSQL_USER: gdoc
-      MYSQL_PASSWORD: gdoc123
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-gdoc123}
       TZ: Asia/Shanghai
     ports:
       - "3306:3306"
@@ -21,10 +21,12 @@ services:
       - --collation-server=utf8mb4_unicode_ci
       - --default-authentication-plugin=mysql_native_password
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot123"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-root123}"]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - gdoc-net
 
   redis:
     image: redis:7-alpine
@@ -34,9 +36,60 @@ services:
       - "6379:6379"
     volumes:
       - ./docker/data/redis:/data
-    command: redis-server --appendonly yes --requirepass redis123
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis123}
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "redis123", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis123}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - gdoc-net
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    container_name: gdoc-backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/gdoc?useUnicode=true&characterEncoding=utf8mb4&serverTimezone=Asia/Shanghai
+      SPRING_DATASOURCE_USERNAME: gdoc
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:-gdoc123}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD:-redis123}
+      GDOC_JWT_SECRET: ${JWT_SECRET:-changeme-default-jwt-secret-min-32-chars}
+      GDOC_JWT_EXPIRATION: 86400000
+      GDOC_SSO_ENABLED: "false"
+      GDOC_SSO_SECRET: ""
+      GDOC_UPLOAD_PATH: /app/uploads
+      GDOC_WATERMARK_PREFIX: GDOC
+      GDOC_WATERMARK_ENABLED: "true"
+    volumes:
+      - ./gdoc-server/uploads:/app/uploads
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - gdoc-net
+
+  frontend:
+    build:
+      context: gdoc-web
+      dockerfile: ../docker/Dockerfile.frontend
+    container_name: gdoc-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - gdoc-net
+
+networks:
+  gdoc-net:
+    driver: bridge

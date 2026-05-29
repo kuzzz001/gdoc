@@ -58,5 +58,9 @@ logging:
 
 gdoc:
   jwt:
-    secret: ${JWT_SECRET:GdocSecretKey2026GdocSecretKey2026Gdoc}
+    secret: ${JWT_SECRET}
     expiration: ${JWT_EXPIRATION:86400000}
+  sso:
+    enabled: ${SSO_ENABLED:false}
+    header: ${SSO_HEADER:X-SSO-Token}
+    secret: ${SSO_SECRET:}

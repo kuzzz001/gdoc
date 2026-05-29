@@ -3,6 +3,8 @@ package com.gdoc.security.util;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -13,13 +15,22 @@ import java.util.Date;
 @Component
 public class JwtUtils {
 
+    private static final Logger log = LoggerFactory.getLogger(JwtUtils.class);
+
     private final SecretKey key;
     private final long expiration;
 
-    public JwtUtils(@Value("${gdoc.jwt.secret:GdocSecretKey2026GdocSecretKey2026Gdoc}") String secret,
+    public JwtUtils(@Value("${gdoc.jwt.secret}") String secret,
                     @Value("${gdoc.jwt.expiration:86400000}") long expiration) {
+        if (secret == null || secret.isBlank() || secret.length() < 32) {
+            throw new IllegalStateException(
+                    "JWT secret must be configured and at least 32 characters long. " +
+                    "Set 'gdoc.jwt.secret' in application.yml or environment variable GDOC_JWT_SECRET."
+            );
+        }
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.expiration = expiration;
+        log.info("JWT utils initialized with secret length: {}", secret.length());
     }
 
     public String generateToken(Long userId, String username) {

@@ -111,7 +111,7 @@
 
           <template v-else>
             <div class="chat-header">
-              <Avatar :text="activeFriend?.nickname || activeFriend?.username" :src="activeFriend?.avatar" size="md" />
+              <Avatar :text="activeFriend?.nickname || activeFriend?.username" :src="activeFriend?.avatarUrl" size="md" />
               <div class="chat-header-info">
                 <div class="chat-header-name">{{ activeFriend?.nickname || activeFriend?.username }}</div>
                 <div class="chat-header-status">在线</div>
@@ -241,7 +241,13 @@ async function handleInvitation(id: number, action: 'accept' | 'reject') {
 
 function sendMessage() {
   if (!messageInput.value.trim() || !activeChatUserId.value) return
-  messageInput.value = ''
+  try {
+    socialStore.sendMessage(activeChatUserId.value, messageInput.value.trim())
+  } catch {
+    // handled by store
+  } finally {
+    messageInput.value = ''
+  }
 }
 
 function handleLogout() {

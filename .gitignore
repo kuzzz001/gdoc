@@ -25,11 +25,26 @@ logs/
 
 # ==================== Docker ====================
 docker/data/
-
-# ==================== Environment ====================
 .env
 .env.local
 
-# ==================== Sensitive ====================
+# ==================== Environment ====================
 application-dev.yml
+application-*.yml.bak
+
+# ==================== Sensitive ====================
+*.pem
+*.key
+*.p12
+*.jks
+*.keystore
+
+# ==================== Uploads ====================
+gdoc-server/uploads/*
+!gdoc-server/uploads/.gitkeep
 app.log
+
+# ==================== Node ====================
+node_modules/
+dist/
+*.tsbuildinfo

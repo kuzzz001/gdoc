@@ -5,21 +5,11 @@ import type { ApiResponse } from '@/types'
 const request: AxiosInstance = axios.create({
   baseURL: '/api',
   timeout: 15000,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
 })
-
-request.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem('token')
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
-    }
-    return config
-  },
-  (error) => Promise.reject(error)
-)
 
 request.interceptors.response.use(
   (response: AxiosResponse<ApiResponse>) => {
@@ -31,8 +21,6 @@ request.interceptors.response.use(
   },
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
       window.location.href = '/login'
     }
     return Promise.reject(error.response?.data?.message || error.message || '网络错误')

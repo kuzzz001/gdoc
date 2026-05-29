@@ -4,6 +4,7 @@ import type { LoginRequest, RegisterRequest, AuthResponse, User } from '@/types'
 export const authApi = {
   login: (data: LoginRequest) => request.post<any, AuthResponse>('/auth/login', data),
   register: (data: RegisterRequest) => request.post<any, AuthResponse>('/auth/register', data),
+  logout: () => request.post<any, void>('/auth/logout'),
 }
 
 export const userApi = {

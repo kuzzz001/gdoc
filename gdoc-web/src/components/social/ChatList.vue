@@ -7,7 +7,7 @@
       :class="{ active: activeUserId === friend.userId }"
       @click="$emit('select', friend)"
     >
-      <Avatar :text="friend.nickname || friend.username" :src="friend.avatar" size="md" />
+      <Avatar :text="friend.nickname || friend.username" :src="friend.avatarUrl" size="md" />
       <div class="chat-item-info">
         <div class="chat-item-name">{{ friend.nickname || friend.username }}</div>
         <div class="chat-item-preview">{{ lastMessage(friend.userId) }}</div>

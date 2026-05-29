@@ -40,6 +40,13 @@ export const useSocialStore = defineStore('social', () => {
     fetchUnreadCount()
   }
 
+  async function sendMessage(friendId: number, content: string) {
+    const msg = await messageApi.send(friendId, content)
+    const list = messages.value.get(friendId) || []
+    list.push(msg)
+    messages.value = new Map(messages.value.set(friendId, list))
+  }
+
   function addMessage(msg: Message) {
     const friendId = msg.senderId === activeChatUserId.value ? msg.receiverId : msg.senderId
     const list = messages.value.get(friendId) || []
@@ -50,6 +57,6 @@ export const useSocialStore = defineStore('social', () => {
   return {
     friends, friendRequests, invitations, messages, unreadTotal, activeChatUserId, loading,
     fetchFriends, fetchFriendRequests, fetchInvitations, fetchMessages, fetchUnreadCount,
-    markRead, addMessage,
+    markRead, addMessage, sendMessage,
   }
 })

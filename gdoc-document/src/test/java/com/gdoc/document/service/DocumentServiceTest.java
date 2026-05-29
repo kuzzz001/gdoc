@@ -35,8 +35,6 @@ class DocumentServiceTest {
 
     @Test
     void shouldCreateDocument() {
-        when(documentMapper.insert(any(GdocDocument.class))).thenReturn(1);
-
         GdocDocument doc = new GdocDocument();
         doc.setTitle("New Doc");
         doc.setOwnerId(100L);

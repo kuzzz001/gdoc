@@ -12,7 +12,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class HistoryService {
@@ -141,5 +143,52 @@ public class HistoryService {
         LambdaQueryWrapper<GdocOperationLog> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(GdocOperationLog::getDocId, docId);
         return Math.toIntExact(operationLogMapper.selectCount(wrapper));
+    }
+
+    public List<Map<String, Object>> compareVersions(Long docId, int versionA, int versionB) {
+        String contentA = getContentAtVersion(docId, versionA);
+        String contentB = getContentAtVersion(docId, versionB);
+
+        if (contentA.equals(contentB)) {
+            return List.of();
+        }
+
+        String[] linesA = contentA.split("\n");
+        String[] linesB = contentB.split("\n");
+
+        List<Map<String, Object>> diffs = new ArrayList<>();
+        int[][] matrix = buildLCSTable(linesA, linesB);
+        buildDiff(diffs, linesA, linesB, matrix, linesA.length, linesB.length);
+
+        return diffs;
+    }
+
+    private int[][] buildLCSTable(String[] a, String[] b) {
+        int m = a.length;
+        int n = b.length;
+        int[][] dp = new int[m + 1][n + 1];
+        for (int i = 1; i <= m; i++) {
+            for (int j = 1; j <= n; j++) {
+                if (a[i - 1].equals(b[j - 1])) {
+                    dp[i][j] = dp[i - 1][j - 1] + 1;
+                } else {
+                    dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+                }
+            }
+        }
+        return dp;
+    }
+
+    private void buildDiff(List<Map<String, Object>> diffs, String[] a, String[] b, int[][] dp, int i, int j) {
+        if (i > 0 && j > 0 && a[i - 1].equals(b[j - 1])) {
+            buildDiff(diffs, a, b, dp, i - 1, j - 1);
+            diffs.add(Map.of("type", "unchanged", "line", i - 1, "text", a[i - 1]));
+        } else if (j > 0 && (i == 0 || dp[i][j - 1] >= dp[i - 1][j])) {
+            buildDiff(diffs, a, b, dp, i, j - 1);
+            diffs.add(Map.of("type", "added", "line", j - 1, "text", b[j - 1]));
+        } else if (i > 0 && (j == 0 || dp[i][j - 1] < dp[i - 1][j])) {
+            buildDiff(diffs, a, b, dp, i - 1, j);
+            diffs.add(Map.of("type", "removed", "line", i - 1, "text", a[i - 1]));
+        }
     }
 }

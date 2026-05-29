@@ -59,15 +59,7 @@ public class DocumentService {
 
     public IPage<DocumentVO> list(Long userId, int pageNum, int pageSize) {
         Page<GdocDocument> page = new Page<>(pageNum, pageSize);
-
-        LambdaQueryWrapper<GdocDocument> wrapper = new LambdaQueryWrapper<GdocDocument>()
-                .eq(GdocDocument::getOwnerId, userId)
-                .or()
-                .exists("SELECT 1 FROM gdoc_collaborator c WHERE c.doc_id = gdoc_document.id AND c.user_id = {0}", userId)
-                .orderByDesc(GdocDocument::getUpdatedAt);
-
-        IPage<GdocDocument> docPage = documentMapper.selectPage(page, wrapper);
-
+        IPage<GdocDocument> docPage = documentMapper.selectUserDocs(page, userId);
         return docPage.convert(doc -> toVO(doc, userId));
     }
 
